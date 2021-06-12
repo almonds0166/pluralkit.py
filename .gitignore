@@ -1,0 +1,6 @@
+__pycache__/
+
+# etc.
+update_reqs.*
+tmp.*
+temp.*

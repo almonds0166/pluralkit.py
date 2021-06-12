@@ -1,0 +1,2 @@
+aiohttp==3.7.4.post0
+tzdata==2021.1
