@@ -1,5 +1,4 @@
 
-from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from typing import (
    Any,
@@ -7,13 +6,12 @@ from typing import (
    Tuple, List, Set, Sequence, Dict,
 )
 
-import tzdata # zoneinfo requires this package to be installed, and this line makes sure pipreqs
-              # sees this package when building the requirements.txt
+from pytz import timezone
 
 class ProxyTag:
    """Represents a single PluralKit proxy tag.
    
-   Attributes
+   Attributes:
       prefix: Prefix that will enclose proxied messages.
       suffix: Suffix that will enclose proxied messages.
    """
@@ -46,7 +44,7 @@ class ProxyTag:
    def match(self, message: str) -> bool:
       """Determine if a given message would be proxied under this proxy tag.
 
-      Args
+      Args:
          message: Message to parse. Should already be stripped of outer whitespace.
       """
       return (True if not self.prefix else message.startswith(self.prefix)) \
@@ -99,7 +97,7 @@ class ProxyTags:
 class System:
    """Represents a PluralKit system.
 
-   Attributes
+   Attributes:
       id: The system's five-character lowercase ID.
    """
 
@@ -109,7 +107,7 @@ class System:
       description: Optional[str]=None,
       tag: Optional[str]=None,
       avatar_url: Optional[str]=None,
-      tz: Union[ZoneInfo,str]="UTC",
+      tz: Union[timezone,str]="UTC",
       created: Union[datetime,str,None]=None,
       description_privacy: str="public",
       member_list_privacy: str="public",
@@ -124,8 +122,8 @@ class System:
       elif isinstance(created, datetime):
          self._created = datetime
       if isinstance(tz, str):
-         self._tz = ZoneInfo(tz) # expected tzdb identifier
-      elif isinstance(tz, ZoneInfo):
+         self._tz = timezone(tz) # expected tzdb identifier
+      elif isinstance(tz, timezone):
          self._tz = tz
       self.name = name
       self.description = description
@@ -152,7 +150,7 @@ class System:
    def tz(self) -> str:
       """System time zone.
       """
-      return self._tz.key
+      return self._tz.zone
 
    def json(self) -> Dict[str,Any]:
       """Return Python Dict representing this system.
@@ -174,7 +172,7 @@ class System:
 class Member:
    """Represents a PluralKit system member.
 
-   Attributes
+   Attributes:
       id: The member's five-character lowercase ID.
       name: The member's name.
    """
@@ -265,7 +263,7 @@ class Member:
 class Switch:
    """Represents a switch event.
 
-   Args
+   Args:
       timestamp: Timestamp of the switch.
       members: Members involved. May be a string of the five-letter member ID, or full Member
          models, though cannot be mixed.
@@ -302,7 +300,7 @@ class Switch:
 class Message:
    """Represents a proxied message.
 
-   Args
+   Args:
       timestamp: Timestamp of the message.
       id: The ID of the Discord message sent by the webhook.
       original: The ID of the (deleted) Discord message sent by the account.

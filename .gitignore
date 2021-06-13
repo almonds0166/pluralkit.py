@@ -1,5 +1,11 @@
 __pycache__/
 
+# docs
+docs/_build/
+
+# virtual environment
+venv/
+
 # etc.
 update_reqs.*
 tmp.*

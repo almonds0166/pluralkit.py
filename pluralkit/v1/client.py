@@ -15,7 +15,7 @@ from .errors import *
 class Client:
    """Represents a client that interacts with the PluralKit API.
 
-   Args
+   Args:
       token: The PluralKit authorization token, received by the ``pk;token`` command.
       user_agent: The UserAgent header to use with the API.
    """
@@ -34,11 +34,15 @@ class Client:
       self._id = None
 
    @property
-   def ready(self):
+   def ready(self) -> bool:
+      """Whether the client has initialized its ``id`` propery yet.
+      """
       return self._ready
 
    @property
-   def id(self):
+   def id(self) -> Optional[str]:
+      """The five-letter lowercase PluralKit system ID of this client, if initialized.
+      """
       return self._id
 
    async def _check_ready(self):
@@ -47,10 +51,10 @@ class Client:
          self._id = system.id
          self._ready = True
 
-   async def get_system(self, system: Union[System,str,int]=None):
+   async def get_system(self, system: Union[System,str,int,None]=None):
       """Return a system by its system ID or Discord user ID.
 
-      Args
+      Args:
          system: The system ID, Discord user ID, or System object of the system. If None, returns
             the system of the client.
       """
@@ -100,10 +104,10 @@ class Client:
 
             return system
 
-   async def get_members(self, system: Union[System,str,int]=None):
+   async def get_members(self, system: Union[System,str,int,None]=None):
       """Retrieve list of a system's members.
 
-      Args
+      Args:
          system: The system ID, Discord user ID, or System object of the system. If None, returns
             a list of the client system's members.
       """

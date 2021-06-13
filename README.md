@@ -32,4 +32,6 @@ To use the client, you'll need your [PluralKit authorization token](https://plur
 * Maybe destruct `ProxyTags` class into just `List[ProxyTag]`?
 * Prepare for API v2
 * Documentation (namely add attributes docs)
+* Consider returning datetime.datetime instead of str for system.created property
+* Consider returninf pytz.timezone instead of str for system.tz property
 
