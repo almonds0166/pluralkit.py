@@ -169,7 +169,7 @@ class Client:
                yield member
 
    async def edit_member(self, member_id: str, dict: Dict) -> System:
-      """ Edits the system ini
+      """ Edits the a member of the system with the authorization token passed at initialization.
       Args:
          member_id: The id of the member to be edited
          dict: A dict containing any number of patchable values from PK's member model: https://pluralkit.me/api/#member-model
