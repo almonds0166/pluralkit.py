@@ -22,11 +22,11 @@ class Client:
 
    SERVER = "https://api.pluralkit.me/v1"
 
-   def __init__(self, token: str, user_agent: Optional[str]=None):
+   def __init__(self, token: str=None, user_agent: Optional[str]=None):
       self.token = token
-      self.headers = {
-         "Authorization": token,
-      }
+      self.headers = { }
+      if token:
+         self.headers["Authorization"] = token
       if user_agent:
          self.headers["UserAgent"] = user_agent
 
@@ -168,5 +168,39 @@ class Client:
 
                yield member
 
-   #async def edit_system(self, system: Union[System,str,int,None], ...) -> System:
-   #   ... # not yet implemented
+   async def edit_member(self, member_id: str, dict: Dict) -> System:
+      """ Edits the system ini
+      Args:
+         member_id: The id of the member to be edited
+         dict: A dict containing any number of patchable values from PK's member model: https://pluralkit.me/api/#member-model
+      Returns:
+         Modified member object.
+      """
+      if not self.token:
+         raise AuthorizationError()
+      possible_attrs = [
+         "name", 
+         "display_name", 
+         "description", 
+         "pronouns", 
+         "color", 
+         "avatar_url", 
+         "birthday", 
+         "proxy_tags", 
+         "keep_proxy", 
+         "visibility", 
+         "name_privacy", 
+         "description_privacy", 
+         "avatar_privacy", 
+         "pronoun_privacy",
+         "metadata_privacy"]
+      for key, value in dict.items():
+         if not key in possible_attrs:
+            raise Exception("Invalid key passed") #Make official error model for this later.
+      async with aiohttp.ClientSession(headers=self.headers) as session:
+         async with session.patch(f"https://api.pluralkit.me/v1/m/{member_id}", data=dict, ssl=True) as response:
+            if response.status != 200:
+               raise Exception("Unknown error in PATCH request") #Make official error, or remove if unneeded
+            else:
+               return await response.json()
+   
