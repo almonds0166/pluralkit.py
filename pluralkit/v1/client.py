@@ -8,6 +8,7 @@ from typing import (
 
 import asyncio
 import aiohttp
+import json
 
 from .models import System, Member, ProxyTag, ProxyTags
 from .errors import *
@@ -168,7 +169,7 @@ class Client:
 
                yield member
 
-   async def edit_member(self, member_id: str, dict: Dict) -> System:
+   async def edit_member(self, member_id: str, updates: Dict) -> System:
       """ Edits the a member of the system with the authorization token passed at initialization.
       Args:
          member_id: The id of the member to be edited
@@ -176,6 +177,7 @@ class Client:
       Returns:
          Modified member object.
       """
+
       if not self.token:
          raise AuthorizationError()
       possible_attrs = [
@@ -194,13 +196,15 @@ class Client:
          "avatar_privacy", 
          "pronoun_privacy",
          "metadata_privacy"]
-      for key, value in dict.items():
-         if not key in possible_attrs:
-            raise Exception("Invalid key passed") #Make official error model for this later.
+      for key, value in updates.items():
+        if not key in possible_attrs:
+          raise Exception("Invalid key passed") #Make official error model for this later.
+      json_payload = json.dumps(updates, indent=4, ensure_ascii=False)
+
       async with aiohttp.ClientSession(headers=self.headers) as session:
-         async with session.patch(f"https://api.pluralkit.me/v1/m/{member_id}", data=dict, ssl=True) as response:
+         async with session.patch(f"https://api.pluralkit.me/v1/m/{member_id}", data=json_payload, ssl=True) as response:
             if response.status != 200:
-               raise Exception("Unknown error in PATCH request") #Make official error, or remove if unneeded
+               print(response.status)
             else:
                return await response.json()
    
