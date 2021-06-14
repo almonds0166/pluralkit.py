@@ -33,5 +33,6 @@ The client can be used without one's [PluralKit authorization token](https://plu
 * Prepare for API v2
 * Documentation (namely add attributes docs)
 * Consider returning datetime.datetime instead of str for system.created property
-* Consider returninf pytz.timezone instead of str for system.tz property
+* Consider returning pytz.timezone instead of str for system.tz property
+* Consider having a hide_birthyear(member) method
 
