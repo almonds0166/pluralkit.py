@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 from typing import (
    Any,
@@ -7,6 +6,8 @@ from typing import (
 )
 
 from pytz import timezone
+from colour import Color
+from .errors import *
 
 class ProxyTag:
    """Represents a single PluralKit proxy tag.
@@ -43,7 +44,6 @@ class ProxyTag:
 
    def match(self, message: str) -> bool:
       """Determine if a given message would be proxied under this proxy tag.
-
       Args:
          message: Message to parse. Should already be stripped of outer whitespace.
       """
@@ -83,7 +83,6 @@ class ProxyTags:
 
    def match(self, message: str) -> bool:
       """Determine if a given message would be proxied under this set of proxy tags.
-
       Args
          message: Message to parse. Should already be stripped of outer whitespace.
       """
@@ -96,7 +95,6 @@ class ProxyTags:
 
 class System:
    """Represents a PluralKit system.
-
    Attributes:
       id: The system's five-character lowercase ID.
    """
@@ -171,7 +169,6 @@ class System:
    
 class Member:
    """Represents a PluralKit system member.
-
    Attributes:
       id: The member's five-character lowercase ID.
       name: The member's name.
@@ -262,7 +259,6 @@ class Member:
 
 class Switch:
    """Represents a switch event.
-
    Args:
       timestamp: Timestamp of the switch.
       members: Members involved. May be a string of the five-letter member ID, or full Member
@@ -299,7 +295,6 @@ class Switch:
 
 class Message:
    """Represents a proxied message.
-
    Args:
       timestamp: Timestamp of the message.
       id: The ID of the Discord message sent by the webhook.
@@ -334,3 +329,14 @@ class Message:
    #@staticmethod
    #def from_id(id):
    #   pass
+
+class Colour:
+  def __init__(self, color):
+    try:
+      colour = Color(color.replace(" ","")) 
+      self.id = colour.hex_l [1:]
+    except:
+      if color:
+        raise InvalidColor(color)
+      else:
+        self.id = None
