@@ -27,12 +27,8 @@ The client can be used without one's [PluralKit authorization token](https://plu
 
 ## Todo
 
-* Incorporate character limits to applicable JSON attributes.
 * Maybe make an Enum for privacies (namely `{public,private}`)?
-* Maybe destruct `ProxyTags` class into just `List[ProxyTag]`?
 * Prepare for API v2
-* Documentation (namely add attributes docs)
 * Consider returning datetime.datetime instead of str for system.created property
 * Consider returning pytz.timezone instead of str for system.tz property
-* Consider having a hide_birthyear(member) method
 
