@@ -35,7 +35,8 @@ release = '0.0.0'
 extensions = [
    'sphinx.ext.napoleon',
    'sphinx.ext.autodoc',
-   "sphinxjp.themes.basicstrap"
+   "sphinxjp.themes.basicstrap",
+   "sphinx_autodoc_typehints"
 ]
 
 # Add any paths that contain templates here, relative to this directory.

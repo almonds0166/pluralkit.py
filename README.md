@@ -9,24 +9,24 @@ Currently working on PluralKit's v1.0 API.
 ```python
 from pluralkit.v1 import Client
 
-pk = Client("token")
+pk = Client()
 
-async for member in pk.get_members():
-   print(member.json())
+async for member in pk.get_members("abcde"):
+   # list members of the system with ID ``abcde``
+   print(f"{member.name} (`{member.id})`")
 ```
 
 ## Token
 
-To use the client, you'll need your [PluralKit authorization token](https://pluralkit.me/api/#authentication).
+The client can be used without one's [PluralKit authorization token](https://pluralkit.me/api/#authentication), but they'll need it if they'd like to edit their system or access any of their system's private members or info.
 
 ## Links
 
-* [PluralKit v1.0 API](https://app.swaggerhub.com/apis-docs/xSke/PluralKit/1.0#/)
+* [PluralKit's API](https://pluralkit.me/)
 * [PluralKit support server](https://discord.gg/PczBt78)
 
 ## Todo
 
-* More obviously: more methods for GETs, edits
 * Incorporate character limits to applicable JSON attributes.
 * Maybe make an Enum for privacies (namely `{public,private}`)?
 * Maybe destruct `ProxyTags` class into just `List[ProxyTag]`?
