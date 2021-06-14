@@ -1,0 +1,33 @@
+
+import logging
+import sys
+sys.path.append("..")
+
+import asyncio
+
+from pluralkit.v1 import Client
+
+async def main(pk, id):
+    system = await pk.get_system(id)
+    print(f"{system.name} (`{system.id}`)")
+
+if __name__ == "__main__":
+    print("Enter the token, if desired, otherwise press Enter.")
+    token = input("> ").strip() # getpass doesn't allow copy-paste
+    pk = Client(token)
+    
+    while True:
+        try:
+            print("Enter the ID of the system to get, empty if getting one's own system.")
+            id = input("> ").strip().lower()
+            if not id:
+                asyncio.get_event_loop().run_until_complete(main(pk, None))
+            elif len(id) == 5 and all(c.isalpha() for c in id):
+                asyncio.get_event_loop().run_until_complete(main(pk, id))
+            else:
+                print("That's not a valid system ID.")
+        except KeyboardInterrupt:
+            print("^C")
+            break
+        except:
+            logging.exception("An exception occurred")
