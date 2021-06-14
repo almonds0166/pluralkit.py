@@ -4,7 +4,10 @@ __all__ = (
    "AuthorizationError",
    "SystemNotFound",
    "DiscordUserNotFound",
-   "AccessForbidden"
+   "AccessForbidden",
+   "InvalidKey",
+   "InvalidColor",
+   "InvalidDate"
 )
 
 class PluralKitException(Exception):
@@ -44,3 +47,30 @@ class AccessForbidden(PluralKitException):
          "The system's member list is private and the client authorization token is either "
          "missing, invalid, or does not correspond to the system."
       ))
+
+class InvalidKey(Exception):
+  """
+  Thrown when an invalid field is passed in a POST or PATCH request
+  """
+  def __init__(self, key):
+    super().__init__(
+      f"A invalid field was passed; {key}"
+    )
+
+class InvalidColor(Exception):
+  """
+  Thrown when an invalid color is passed in a POST or PATCH request
+  """
+  def __init__(self, color):
+    super().__init__(
+      f"{color} is not a valid color representation."
+    )
+
+class InvalidDate(Exception):
+  """
+  Thrown when an invalid string is passed for the "Birthday" field of a member object. (Must be yyyy-mm-dd)
+  """
+  def __init__(self, string):
+    super().__init__(
+      f"{string} is not a valid yyyy-mm-dd date."
+    )
