@@ -36,14 +36,7 @@ class Client:
         if user_agent:
             self.headers["UserAgent"] = user_agent
 
-        self._ready = False
         self._id = None
-
-    @property
-    def ready(self) -> bool:
-        """Whether the client has initialized its ``id`` propery yet.
-        """
-        return self._ready
 
     @property
     def id(self) -> Optional[str]:
@@ -51,11 +44,10 @@ class Client:
         """
         return self._id
 
-    async def _check_ready(self):
-        if not self._ready:
+    async def _check_self_id(self):
+        if self._id is None:
             system = await self.get_system()
             self._id = system.id
-            self._ready = True
 
     async def get_system(self, system: Union[System,str,int,None]=None) -> System:
         """Return a system by its system ID or Discord user ID.
@@ -67,9 +59,9 @@ class Client:
         Returns:
             system (System): The desired system.
         """
-        #await self._check_ready()
 
         if system is None:
+            if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
             url = f"{self.SERVER}/s"
         elif isinstance(system, System):
@@ -99,6 +91,10 @@ class Client:
 
                 system = U.pack_system(resp)
 
+                if url.endswith("/s"):
+                    # remember self ID for the future
+                    self._id = system.id
+
                 return system
 
     async def get_members(self, system: Union[System,str,int,None]=None):
@@ -111,10 +107,10 @@ class Client:
         Yields:
             member (Member): The next system member.
         """
-        await self._check_ready()
 
         if system is None:
             # get own system
+            await self._check_self_id()
             url = f"{self.SERVER}/s/{self.id}/members"
         elif isinstance(system, System):
             # System object
@@ -139,15 +135,15 @@ class Client:
                     elif isinstance(system, int):
                         raise DiscordUserNotFound(system)
                     
-                    if response.status != 200: # catch-all
-                        raise PluralKitException()
+                if response.status != 200: # catch-all
+                    raise PluralKitException()
 
-                    resp = await response.json()
+                resp = await response.json()
 
-                    for item in resp:
-                        member = U.pack_member(item)
+                for item in resp:
+                    member = U.pack_member(item)
 
-                        yield member
+                    yield member
 
     async def edit_member(self, member_id: str, **kwargs) -> Member:
         """Edits a member of the system with the authorization token passed at initialization.

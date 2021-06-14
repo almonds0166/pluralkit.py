@@ -19,9 +19,10 @@ class AuthorizationError(PluralKitException):
     """Thrown when the authorization token passed to PluralKit's API is invalid (or missing).
     """
     def __init__(self):
-        super().__init__(
-            "System token seems to be invalid. Can you check that you entered it in correctly?"
-        )
+        super().__init__((
+            "System token seems to be missing or invalid. Can you check that you entered it in "
+            "correctly?"
+        ))
 
 class SystemNotFound(PluralKitException):
     """Thrown when the system ID is apparently not in PluralKit's database.

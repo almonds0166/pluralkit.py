@@ -33,7 +33,7 @@ class ProxyTag:
         self.suffix = suffix
 
     @staticmethod
-    def from_dict(proxy_tag: Dict[str,str]) -> ProxyTag:
+    def from_dict(proxy_tag: Dict[str,str]):
         """Static method to convert a proxy tag Dict to a ProxyTag.
 
         Args:
@@ -437,12 +437,12 @@ class Colour:
     """Represents a color.
 
     Args:
-        color: ...
+        color (Union[Colour,str,None]): ...
 
     Attributes:
         id: ...
     """
-    def __init__(self, color: Union[Colour,str,None]=None):
+    def __init__(self, color=None):
         try:
             colour = Color(color.replace(" ","")) 
             self.id = colour.hex_l[1:]
