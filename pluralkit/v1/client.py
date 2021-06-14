@@ -166,4 +166,3 @@ class Client:
                 else:
                     item = await response.json()
                     return U.pack_member(item)
-
