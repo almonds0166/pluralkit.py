@@ -190,6 +190,31 @@ class System:
         """
         return self._tz.zone
 
+    @staticmethod
+    def from_dict(system: Dict[str,Any]):
+        """Static method to convert a system Dict to a System object.
+
+        Args:
+            system: Dictionary representing a system, e.g. one received directly from the API. Must
+            have a value for the ``id`` and ``created`` attributes.
+
+        Returns:
+            system (System): The corresponding System object.
+        """
+        return System(
+            id=system["id"],
+            name=system.get("name"),
+            description=system.get("description"),
+            tag=system.get("tag"),
+            avatar_url=system.get("avatar_url"),
+            tz=system.get("tz", "UTC"),
+            created=system["created"],
+            description_privacy=system.get("description_privacy", "public"),
+            member_list_privacy=system.get("member_list_privacy", "public"),
+            front_privacy=system.get("front_privacy", "public"),
+            front_history_privacy=system.get("front_history_privacy", "public")
+        )
+
     def json(self) -> Dict[str,Any]:
         """Return Python Dict representing this system.
         """
@@ -319,6 +344,42 @@ class Member:
         """
         return self._created.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
+    @staticmethod
+    def from_dict(member: Dict[str,Any]):
+        """Static method to convert a member Dict to a Member object.
+
+        Args:
+            member: Dictionary representing a system, e.g. one received directly from the API. Must
+            have a value for the ``id`` and ``created`` attributes.
+
+        Returns:
+            member (Member): The corresponding Member object.
+        """
+        if not "proxy_tags" in member:
+            proxy_tags = ProxyTags()
+        else:
+            proxy_tags = ProxyTags.from_dict(member["proxy_tags"])
+        return Member(
+            id=member["id"],
+            name=member.get("name"),
+            name_privacy=member.get("name_privacy"),
+            created=member["created"],
+            display_name=member.get("display_name"),
+            description=member.get("description"),
+            description_privacy=member.get("description_privacy", "public"),
+            color=member.get("color"),
+            birthday=member.get("birthday"),
+            birthday_privacy=member.get("birthday_privacy", "public"),
+            pronouns=member.get("pronouns", "public"),
+            pronoun_privacy=member.get("pronoun_privacy", "public"),
+            avatar_url=member.get("avatar_url"),
+            avatar_privacy=member.get("avatar_privacy", "public"),
+            keep_proxy=member.get("keep_proxy", False),
+            metadata_privacy=member.get("metadata_privacy", "public"),
+            proxy_tags=proxy_tags,
+            visibility=member.get("visibility", "public"),
+        )
+
     def json(self) -> Dict[str,Any]:
         """Return Python Dict representing this member.
         """
@@ -377,6 +438,24 @@ class Switch:
         """
         return self._timestamp.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
+    @staticmethod
+    def from_dict(switch: Dict[str,str]):
+        """Static method to convert a switch Dict to a Switch object.
+
+        Args:
+            switch: Dictionary representing a switch, e.g. one received directly from the API. Must
+            have a value for the ``members`` and ``timestamp`` attributes. See this class's
+            initializer documentation for what format those are expected to be in.
+
+        Returns:
+            switch (Switch): The corresponding Switch object.
+        """
+        return Switch(
+            timestamp=switch["timestamp"],
+            members=switch["members"]
+        )
+
+
     def json(self) -> Dict[str,Any]:
         """Return Python Dict representing this switch.
         """
@@ -429,9 +508,45 @@ class Message:
         self.system = system
         self.member = member
 
-    #@staticmethod
-    #def from_id(id):
-    #    pass
+    @property
+    def timestamp(self) -> str:
+        """Timestamp of message, UTC.
+        """
+        return self._timestamp.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
+
+    @staticmethod
+    def from_dict(message: Dict[str,Any]):
+        """Static method to convert a message Dict to a Message object.
+
+        Args:
+            message: Dictionary representing a switch, e.g. one received directly from the API.
+            Must have a value the same attributes as required by the Message initializer.
+
+        Returns:
+            message (Message): The corresponding Message object.
+        """
+        return Message(
+            timestamp=message["timestamp"],
+            id=message["id"],
+            original=message["original"],
+            sender=message["sender"],
+            channel=message["channel"],
+            system=System.from_dict(message["system"]),
+            member=Member.from_dict(message["member"])
+        )
+
+    def json(self) -> Dict[str,Any]:
+        """Return Python Dict representing this Message.
+        """
+        return {
+            "timestamp": self.timestamp,
+            "id": str(self.id),
+            "original": str(self.original),
+            "sender": str(self.sender),
+            "channel": str(self.channel),
+            "system": self.system.json(),
+            "member": self.member.json()
+        }
 
 class Colour:
     """Represents a color.

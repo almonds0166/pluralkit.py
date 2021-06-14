@@ -89,7 +89,7 @@ class Client:
 
                 resp = await response.json()
 
-                system = U.pack_system(resp)
+                system = System.from_dict(resp)
 
                 if url.endswith("/s"):
                     # remember self ID for the future
@@ -141,7 +141,7 @@ class Client:
                 resp = await response.json()
 
                 for item in resp:
-                    member = U.pack_member(item)
+                    member = Member.from_dict(item)
 
                     yield member
 
@@ -211,4 +211,4 @@ class Client:
                     raise PluralKitException()
                 else:
                     item = await response.json()
-                    return U.pack_member(item)
+                    return Member.from_dict(item)

@@ -31,45 +31,6 @@ MEMBER_ATTRS = (
 class Utils(object):
 
     @staticmethod
-    def pack_member(item):
-        return Member(
-            id=item["id"],
-            name=item["name"],
-            name_privacy=item["name_privacy"],
-            created=item["created"],
-            display_name=item["display_name"],
-            description=item["description"],
-            description_privacy=item["description_privacy"],
-            color=item["color"],
-            birthday=item["birthday"],
-            birthday_privacy=item["birthday_privacy"],
-            pronouns=item["pronouns"],
-            pronoun_privacy=item["pronoun_privacy"],
-            avatar_url=item["avatar_url"],
-            avatar_privacy=item["avatar_privacy"],
-            keep_proxy=item["keep_proxy"],
-            metadata_privacy=item["metadata_privacy"],
-            proxy_tags=ProxyTags.from_dict(item["proxy_tags"]),
-            visibility=item["visibility"],
-        )
-
-    @staticmethod
-    def pack_system(resp):
-        return System(
-            id=resp["id"],
-            name=resp["name"],
-            description=resp["description"],
-            tag=resp["tag"],
-            avatar_url=resp["avatar_url"],
-            tz=resp["tz"],
-            created=resp["created"],
-            description_privacy=resp["description_privacy"],
-            member_list_privacy=resp["member_list_privacy"],
-            front_privacy=resp["front_privacy"],
-            front_history_privacy=resp["front_history_privacy"]
-        )
-
-    @staticmethod
     async def member_value(kwargs, key, value):
         if not key in MEMBER_ATTRS:
             raise InvalidKey(key)
