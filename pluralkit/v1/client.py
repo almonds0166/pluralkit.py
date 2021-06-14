@@ -1,9 +1,8 @@
 
 from typing import (
-   Any,
-   Union, Optional,
-   Tuple, List, Set, Sequence, Dict,
-   AsyncIterable,
+    Any,
+    Union, Optional,
+    Tuple, List, Set, Sequence, Dict,
 )
 
 import asyncio
