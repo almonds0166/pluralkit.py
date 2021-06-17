@@ -10,7 +10,7 @@ Lists the system name and ID, given a system ID.
 Uses:
 
 * verifying the fundamentals
-* verifying `client.get_system`
+* verifying `Client.get_system`
 * verifying token passing and permissions
 * finding out if a system ID exists.
 
@@ -20,12 +20,20 @@ Lists member names and IDs, given a system ID.
 
 Uses:
 
-* verifying `client.get_members`
+* verifying `Client.get_members`
 * verifying token passing and permissions.
+
+## `edit_member.py`
+
+Edit members with specific IDs. Use your own authorization token and member IDs.
+
+Uses:
+
+* verifying `Client.edit_members`
+* verifying token passing and permissions
 
 ## Todo
 
 * `get_member.py` (given member ID, retrieve Member object)
 * `create_member.py` (create a test member in one's system)
-* `edit_member.py` (edit that same test member in one's system)
-* `delete_member.py` (delete that same test member in one's system)
+* `delete_member.py` (delete test member in one's system)

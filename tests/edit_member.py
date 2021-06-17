@@ -1,12 +1,11 @@
 import logging
 import sys
 sys.path.append("..")
+from random import choice
 
 import asyncio
-from random import choice
-from pluralkit.v1.models import Member
 
-from pluralkit.v1 import Client
+from pluralkit import Client, Member
 
 choices = {
     "id": ["irqkk", "cewel"],

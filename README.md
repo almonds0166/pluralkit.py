@@ -7,7 +7,7 @@ Currently working on PluralKit's v1.0 API.
 ## Quick example
 
 ```python
-from pluralkit.v1 import Client
+from pluralkit import Client
 
 pk = Client()
 

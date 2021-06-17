@@ -5,7 +5,7 @@ sys.path.append("..")
 
 import asyncio
 
-from pluralkit.v1 import Client
+from pluralkit import Client
 
 async def main(pk, id):
     system = await pk.get_system(id)
