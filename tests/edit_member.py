@@ -32,9 +32,10 @@ async def main(pk, member):
     m = Member.from_dict(member)
     await pk.edit_member(member_id=m.id, name=m.name, display_name=m.display_name, description=m.description, pronouns=m.pronouns, color=m.color, avatar_url=m.avatar_url, birthday=m.birthday, proxy_tags=m.proxy_tags, keep_proxy=m.keep_proxy, visibility=m.visibility, name_privacy=m.name_privacy, description_privacy=m.description_privacy, avatar_privacy=m.avatar_privacy, birthday_privacy=m.birthday_privacy, pronoun_privacy=m.pronoun_privacy, metadata_privacy=m.metadata_privacy)
     
-def run():
-    print("Enter the token, if desired, otherwise press Enter.")
-    token = input("> ").strip() # getpass doesn't allow copy-paste
+def run(token: str=None):
+    if not token:
+        print("Enter the token, if desired, otherwise press Enter.")
+        token = input("> ").strip() # getpass doesn't allow copy-paste
     pk = Client(token)
     try:
         member = {}
