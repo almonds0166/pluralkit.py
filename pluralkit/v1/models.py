@@ -69,13 +69,13 @@ class ProxyTag:
         """Return the JSON object representing this proxy tag as a Python Dict.
         """
         return {
-            "preifx": self.prefix,
+            "prefix": self.prefix,
             "suffix": self.suffix,
         }
 
 class ProxyTags:
     """Represents a set of PluralKit proxy tags.
-
+    
     Args:
         proxy_tags: A sequence of ProxyTag objects.
     """
@@ -101,7 +101,7 @@ class ProxyTags:
 
     def match(self, message: str) -> bool:
         """Determine if a given message would be proxied under this set of proxy tags.
-
+        
         Args
             message: Message to parse. Should already be stripped of outer whitespace.
         """
@@ -552,22 +552,3 @@ class Message:
             "system": self.system.json(),
             "member": self.member.json()
         }
-
-class Colour:
-    """Represents a color.
-
-    Args:
-        color (Union[Colour,str,None]): ...
-
-    Attributes:
-        id: ...
-    """
-    def __init__(self, color=None):
-        try:
-            colour = Color(color.replace(" ","")) 
-            self.id = colour.hex_l[1:]
-        except:
-            if color:
-                raise InvalidColor(color)
-            else:
-                self.id = None
