@@ -58,6 +58,7 @@ class ProxyTag:
 
     def match(self, message: str) -> bool:
         """Determine if a given message would be proxied under this proxy tag.
+        
         Args:
             message: Message to parse. Should already be stripped of outer whitespace.
         """
@@ -100,6 +101,7 @@ class ProxyTags:
 
     def match(self, message: str) -> bool:
         """Determine if a given message would be proxied under this set of proxy tags.
+
         Args
             message: Message to parse. Should already be stripped of outer whitespace.
         """
