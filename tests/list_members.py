@@ -10,9 +10,10 @@ async def main(pk, id):
     async for member in pk.get_members(id):
         print(f"{member.name} (`{member.id}`)")
 
-def run():
-    print("Enter the token, if desired, otherwise press Enter.")
-    token = input("> ").strip() # getpass doesn't allow copy-paste
+def run(token: str=None):
+    if not token:
+        print("Enter the token, if desired, otherwise press Enter.")
+        token = input("> ").strip() # getpass doesn't allow copy-paste
     pk = Client(token)
 
     while True:
