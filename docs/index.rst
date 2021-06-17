@@ -10,8 +10,7 @@ Welcome to pk.py's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   modules
-   v1
+   source/v1
 
 Indices and tables
 ==================

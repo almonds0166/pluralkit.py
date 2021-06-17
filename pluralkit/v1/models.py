@@ -74,6 +74,9 @@ class ProxyTag:
 
 class ProxyTags:
     """Represents a set of PluralKit proxy tags.
+
+    Args:
+        proxy_tags: A sequence of ProxyTag objects.
     """
     def __init__(self, proxy_tags: Optional[Sequence[ProxyTag]]=None):
         if proxy_tags is None: proxy_tags = tuple()
