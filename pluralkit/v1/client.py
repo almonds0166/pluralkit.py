@@ -10,7 +10,7 @@ import aiohttp
 import json
 import datetime
 
-from .models import System, Member, ProxyTag, ProxyTags, Colour
+from .models import System, Member, ProxyTag, ProxyTags
 from .errors import *
 from .utils import Utils as U
 
@@ -161,7 +161,7 @@ class Client:
                 field is cleared.
             pronouns (Optional[str]): New pronouns of the member. If ``None`` is passed, this field
                 is cleared.
-            color (Union[Colour,str,None]): New color of the member. If a string, must be formatted
+            color (Union[str,None]): New color of the member. If a string, must be formatted
                 as a 6-character hex string (e.g. "ff7000"), sans the # symbol. If ``None`` is
                 passed, this field is cleared.
             avatar_url (str): New avatar URL for the member. If ``None`` is passed, this field is
@@ -197,11 +197,10 @@ class Client:
 
         if not self.token:
             raise AuthorizationError()
-            
+        
         for key, value in kwargs.items():
             kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
         
-
         content_headers = self.headers.copy()
         content_headers['Content-Type'] = "application/json"
         json_payload = json.dumps(kwargs, indent=4, ensure_ascii=False)
