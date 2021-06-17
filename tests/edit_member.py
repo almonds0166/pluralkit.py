@@ -4,7 +4,7 @@ sys.path.append("..")
 
 import asyncio
 from random import choice
-from pluralkit.v1..models import Member
+from pluralkit.v1.models import Member
 
 from pluralkit.v1 import Client
 
