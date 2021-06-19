@@ -35,16 +35,11 @@ class Utils(object):
     @staticmethod
     async def member_value(kwargs, key, value):
         if not key in MEMBER_ATTRS:
-            raise InvalidKey(key)
+            raise InvalidKwarg(key)
         if key == "color":
-            try: 
-                color = Utils.check_color(value)
-            except: 
-                color = None
-                raise InvalidColor(value)
-            finally:
-                if color:
-                    kwargs[key] = color
+            color = Utils.check_color(value)
+            if color is not None:
+                kwargs[key] = color
         if key == "birthday":
             if isinstance(value, datetime.date):
                 kwargs[key] = value.strftime("%Y-%m-%d")
@@ -77,12 +72,10 @@ class Utils(object):
 
     @staticmethod
     def check_color(color):
-        try:
-            color2 = Color(color.replace(" ", ""))
-        except:
-            color2 = None
-        finally:
-            if color2:
-                return color2.hex_l[1:]
-            else:
-                return None
+        if color is None: return None
+        if isinstance(color, str):
+            color = Color(color.replace(" ", ""))
+        elif not isinstance(color, Color):
+            raise InvalidColor(color)
+
+        return color.hex_l[1:]
