@@ -195,7 +195,7 @@ class Client:
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         """
 
-        if not self.token:
+        if self.token is None:
             raise AuthorizationError()
         
         for key, value in kwargs.items():
@@ -203,11 +203,104 @@ class Client:
         
         content_headers = self.headers.copy()
         content_headers['Content-Type'] = "application/json"
-        json_payload = json.dumps(kwargs, indent=4, ensure_ascii=False)
+        json_payload = json.dumps(kwargs, ensure_ascii=False)
         async with aiohttp.ClientSession(headers=content_headers) as session:
             async with session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload, ssl=True) as response:
-                if response.status != 200:
-                    raise PluralKitException()
-                else:
+                if response.status == 401:
+                    raise AuthorizationError
+                elif response.status == 200:
                     item = await response.json()
                     return Member.from_dict(item)
+                else:
+                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+    async def get_member(self, member_id: str) -> Member:
+        """Gets a system member
+
+        Args:
+            member_id: The ID of the member to be fetched.
+        
+        Returns:
+            member (Member): Member object.
+
+        .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
+        """
+        async with aiohttp.ClientSession(headers=self.headers) as session:
+            async with session.get(f"{self.SERVER}/m/{member_id}", ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError()
+                elif response.status == 200:
+                    item = await response.json()
+                    return Member.from_dict(item)
+                else:
+                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+
+    async def new_member(self, **kwargs):
+        """Creates a new member of the system with the authorization token passed at initialization.
+
+        Args:
+            name: Name of the new member
+            **kwargs: Any number of keyworded patchable values from `PluralKit's member model`_.
+        
+        Keyword Args:
+            display_name (Optional[str]): Display name of the member. If ``None`` is passed,
+                this field is cleared.
+            description (Optional[str]): Description of the new member. If ``None`` is passed, this
+                field is cleared.
+            pronouns (Optional[str]): Pronouns of the new member. If ``None`` is passed, this field
+                is cleared.
+            color (Optional[str]): Color of the new member. If a string, must be formatted
+                as a 6-character hex string (e.g. "ff7000"), sans the # symbol. If ``None`` is
+                passed, this field is cleared.
+            avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this field is
+                cleared.
+            birthday (Union[datetime, str, None]): Birthdate of the new member. If a string, must be
+                formatted as ``YYYY-MM-DD``. A year of ``0001`` or ``0004`` represents a hidden
+                year. If ``None`` is passed, this field is cleared.
+            proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]) Proxy
+                tags of the new member. May be a ProxyTags object, a sequence of ProxyTag objects, or a
+                sequence of Python dictionaries with the keys "prefix" and "suffix".
+            keep_proxy (bool): Truth value for whether to display the new member's proxy tags in
+                the proxied message, defaults to False.
+            visibility (Optional[str]): Visibility privacy for the new member. Must be either
+                "public" or "private". If ``None`` is passed, this field is reset to "public".
+            name_privacy (Optional[str]): Name privacy for the new member. Must be either "public"
+                or "private". If ``None`` is passed, this field is reset to "public".
+            description_privacy (Optional[str]): Description privacy for the new member. Must be
+                either "public" or "private". If ``None`` is passed, this field is reset to
+                "public".
+            avatar_privacy (Optional[str]): Avatar privacy for the new member. Must be either
+                "public" or "private". If ``None`` is passed, this field is reset to "public".
+            pronoun_privacy (Optional[str]): Pronouns privacy for the new member. Must be either
+                "public" or "private". If ``None`` is passed, this field is reset to "public".
+            metadata_privacy (Optional[str]): Metadata (eg. creation timestamp, message count,
+                etc.) privacy for the new member. Must be either "public" or "private". If ``None`` is
+                passed, this field is reset to "public".
+
+        Returns:
+            member (Member): New member object.
+
+        .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
+        """
+        #Finish editing this so it makes sense in the context it's in
+        if self.token is None:
+            raise AuthorizationError()
+        self._name = None
+        for key, value in kwargs.items():
+            if key == "name":
+                self._name = value
+            kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
+        if self._name is None:
+            raise Exception("Must have field 'name'")
+        content_headers = self.headers.copy()
+        content_headers['Content-Type'] = "application/json"
+        json_payload = json.dumps(kwargs, ensure_ascii=False)
+        async with aiohttp.ClientSession(headers=content_headers) as session:
+            async with session.post(f"{self.SERVER}/m/", data=json_payload, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError
+                elif response.status == 200:
+                    item = await response.json()
+                    return Member.from_dict(item)
+                else:
+                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+    
