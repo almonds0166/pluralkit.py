@@ -5,7 +5,7 @@ __all__ = (
     "SystemNotFound",
     "DiscordUserNotFound",
     "AccessForbidden",
-    "InvalidKey",
+    "InvalidKwarg",
     "InvalidColor",
     "InvalidDate"
 )
@@ -32,6 +32,14 @@ class SystemNotFound(PluralKitException):
             f"System with the given ID (`{id}`) was not found."
         )
 
+class MemberNotFound(PluralKitException):
+    """Thrown when the system ID is apparently not in PluralKit's database.
+    """
+    def __init__(self, id):
+        super().__init__(
+            f"Member with the given ID (`{id}`) was not found."
+        )
+
 class DiscordUserNotFound(PluralKitException):
     """Thrown when the Discord user ID is apparently not associated with a PluralKit system.
     """
@@ -49,13 +57,13 @@ class AccessForbidden(PluralKitException):
             "missing, invalid, or does not correspond to the system."
         ))
 
-class InvalidKey(Exception):
+class InvalidKwarg(Exception):
     """
     Thrown when an invalid field is passed in a POST or PATCH request
     """
     def __init__(self, key):
         super().__init__(
-            f"A invalid field was passed: `{key}`"
+            f"A keyworded argument was passed that will not be accepted by the server: `{key}`"
         )
 
 class InvalidColor(Exception):
@@ -63,9 +71,9 @@ class InvalidColor(Exception):
     Thrown when an invalid color is passed in a POST or PATCH request
     """
     def __init__(self, color):
-     super().__init__(
-        f"Given color is not a valid color representation: `{color}`"
-     )
+        super().__init__(
+                f"Given value is not a string or Color object: `{color}`"
+            )
 
 class InvalidDate(Exception):
     """
