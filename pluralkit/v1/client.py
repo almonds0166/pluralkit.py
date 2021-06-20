@@ -10,7 +10,7 @@ import aiohttp
 import json
 import datetime
 
-from .models import System, Member, ProxyTag, ProxyTags
+from .models import System, Member, Switch
 from .errors import *
 from .utils import Utils as U
 
@@ -35,7 +35,8 @@ class Client:
             self.headers["Authorization"] = token
         if user_agent:
             self.headers["UserAgent"] = user_agent
-
+        self.content_headers = self.headers.copy()
+        self.content_headers['Content-Type'] = "application/json"
         self._id = None
 
     @property
@@ -48,18 +49,9 @@ class Client:
         if self._id is None:
             system = await self.get_system()
             self._id = system.id
-
-    async def get_system(self, system: Union[System,str,int,None]=None) -> System:
-        """Return a system by its system ID or Discord user ID.
-
-        Args:
-            system: The system ID, Discord user ID, or System object of the system. If None, returns
-                the system of the client.
-
-        Returns:
-            system (System): The desired system.
-        """
-
+    
+    @staticmethod
+    def get_url(self, system):
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
@@ -73,6 +65,23 @@ class Client:
         elif isinstance(system, int):
             # Discord user ID
             url = f"{self.SERVER}/a/{system}"
+
+        return url
+
+
+
+    async def get_system(self, system: Union[System,str,int,None]=None) -> System:
+        """Return a system by its system ID or Discord user ID.
+
+        Args:
+            system: The system ID, Discord user ID, or System object of the system. If None, returns
+                the system of the client.
+
+        Returns:
+            system (System): The desired system.
+        """
+        url = Client.get_url(self, system)
+
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
             async with session.get(url, ssl=True) as response:
@@ -108,20 +117,7 @@ class Client:
             member (Member): The next system member.
         """
 
-        if system is None:
-            # get own system
-            await self._check_self_id()
-            url = f"{self.SERVER}/s/{self.id}/members"
-        elif isinstance(system, System):
-            # System object
-            url = f"{self.SERVER}/s/{system.id}/members"
-        elif isinstance(system, str):
-            # system ID
-            url = f"{self.SERVER}/s/{system}/members"
-        elif isinstance(system, int):
-            # Discord user ID
-            system = await self.get_system(system)
-            url = f"{self.SERVER}/s/{system.id}/members"
+        url = Client.get_url(self, system)
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
             async with session.get(url, ssl=True) as response:
@@ -200,11 +196,9 @@ class Client:
         
         for key, value in kwargs.items():
             kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
-        
-        content_headers = self.headers.copy()
-        content_headers['Content-Type'] = "application/json"
+
         json_payload = json.dumps(kwargs, ensure_ascii=False)
-        async with aiohttp.ClientSession(headers=content_headers) as session:
+        async with aiohttp.ClientSession(headers=self.content_headers) as session:
             async with session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload, ssl=True) as response:
                 if response.status == 401:
                     raise AuthorizationError
@@ -291,10 +285,9 @@ class Client:
             kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
         if self._name is None:
             raise Exception("Must have field 'name'")
-        content_headers = self.headers.copy()
-        content_headers['Content-Type'] = "application/json"
+
         json_payload = json.dumps(kwargs, ensure_ascii=False)
-        async with aiohttp.ClientSession(headers=content_headers) as session:
+        async with aiohttp.ClientSession(headers=self.content_headers) as session:
             async with session.post(f"{self.SERVER}/m/", data=json_payload, ssl=True) as response:
                 if response.status == 401:
                     raise AuthorizationError
@@ -303,4 +296,53 @@ class Client:
                     return Member.from_dict(item)
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
-    
+
+    async def get_switches(self, system=None):
+        
+        if system is None: raise Exception("Must have system ID, even with an authorization token")
+
+        elif isinstance(system, System):
+            # System object
+            system_url = f"/s/{system.id}"
+        elif isinstance(system, str):
+            # system ID
+            system_url = f"/s/{system}"
+
+        url = f"https://api.pluralkit.me/v1{system_url}/switches"
+
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
+            async with session.get(url, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError()
+                elif response.status == 403:
+                    raise AccessForbidden()
+                elif response.status == 404:
+                    if isinstance(system, str):
+                        raise SystemNotFound(system)
+                    elif isinstance(system, int):
+                        raise DiscordUserNotFound(system)
+                    
+                if response.status != 200: # catch-all
+                    raise PluralKitException()
+
+                resp = await response.json()
+
+                for item in resp:
+                    switch = Switch.from_dict(item)
+                    yield switch
+
+    async def new_switch(self, members: Sequence[str]):
+        url = "https://api.pluralkit.me/v1/s/switches"
+        payload = json.dumps({"members": members}, ensure_ascii=False)
+
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
+            async with session.post(url, data=payload, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError()
+                elif response.status == 403:
+                    raise AccessForbidden()
+                    
+                if response.status != 204: # catch-all
+                    raise PluralKitException()
+
+
