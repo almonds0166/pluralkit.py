@@ -1,4 +1,4 @@
-from .models import Member, System, ProxyTags, ProxyTag
+from .models import Member, System, ProxyTags, ProxyTag, Privacy
 from .errors import *
 
 from typing import (
@@ -53,8 +53,8 @@ class Utils(object):
             if not isinstance(value, bool):
                 raise ValueError("Keep_proxy must be a boolean value")
         if key in MEMBER_ATTRS [9:]:
-            if not value is None and not value in ["public", "private"]:
-                raise ValueError(f"Must be [None, 'public', 'private'], instead was {value}")
+            if not value in ("public", "private", None, privacy.PUBLIC, privacy.PRIVATE):
+                raise ValueError(f"Must be (None, 'public', 'private', privacy.PUBLIC, privacy.PRIVATE), instead was {value}")
         if key == "avatar_url":
                 async with aiohttp.ClientSession() as session:
                         async with session.head(value, ssl=True) as response:
@@ -79,3 +79,4 @@ class Utils(object):
             raise InvalidColor(color)
 
         return color.hex_l[1:]
+    

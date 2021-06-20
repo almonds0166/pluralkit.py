@@ -552,3 +552,8 @@ class Message:
             "system": self.system.json(),
             "member": self.member.json()
         }
+    
+class Privacy(Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    
