@@ -34,12 +34,5 @@ The client can be used without one's [PluralKit authorization token](https://plu
   * `get_fronters`
 * Tidy up error handling
 * What to do with Client.get_url?
-* Make sure that Timestamp can have hidden birthyear (0001, 0004)
-* Make sure edit_member, new_member, etc. accepts Privacy enum
-* Make methods accept colour.Color
 * Documentation for get_switches, new_switch
-* utils:
-  * parse_color
-  * parse_timezone
-  * parse_timestamp
 * Prepare for API v2
