@@ -1,13 +1,61 @@
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
 )
 
-from pytz import timezone
+import pytz
 from colour import Color
 from .errors import *
+
+class Privacy(Enum):
+    """Represents the two privacies accepted by PluralKit.
+    """
+    PUBLIC = "public"
+    PRIVATE = "private"
+    NULL = None # legacy, effectively resets privacy to "public"
+    
+class Timestamp(datetime):
+    """Represents a PluralKit UTC timestamp.
+
+    This class is initialized in the same way that a datetime object is.
+
+    Hint:
+        Use Timestamp.from_datetime to convert from a datetime object.
+    """
+
+    @staticmethod
+    def from_datetime(dt: datetime):
+        """Cast a datetime object to the corresponding Timestamp.
+
+        Args:
+            dt: The datetime object to cast. If timezone naive, it's assumed to be UTC.
+
+        Returns:
+            timestamp (Timestamp).
+        """
+        dt = dt.astimezone(pytz.UTC) # convert to UTC if timezone info is available.
+        self.dt = Timestamp(
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.hour,
+            dt.minute,
+            dt.second,
+            dt.microsecond
+        )
+
+    def to_iso(self) -> str:
+        """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
+        """
+        return datetime.strptime(self, r"%Y-%m-%dT%H:%M:%S.%fZ")
+
+    def to_birthday(self) -> str:
+        """Convert this timestamp to the YYYY-MM-DD representation, suitable for birthdates.
+        """
+        return datetime.strptime(self, r"%Y-%m-%d")
 
 class ProxyTag:
     """Represents a single PluralKit proxy tag.
@@ -75,6 +123,9 @@ class ProxyTag:
 
 class ProxyTags:
     """Represents a set of PluralKit proxy tags.
+
+    Hint:
+        ProxyTags objects can be iterated and indexed to yield its underlying ProxyTag objects.    
     
     Args:
         proxy_tags: A sequence of ProxyTag objects.
@@ -96,13 +147,19 @@ class ProxyTags:
     @staticmethod
     def from_dict(proxy_tags: Sequence[Dict[str,str]]):
         """Static method to convert a list of proxy tags to a ProxyTags object.
+
+        Args:
+            proxy_tags: Sequence of Python dictionaries, each representing a proxy tag.
+
+        Returns:
+            proxy_tags (ProxyTags): The corresponding ProxyTags object.
         """
         return ProxyTags(ProxyTag.from_dict(proxy_tag) for proxy_tag in proxy_tags)
 
     def match(self, message: str) -> bool:
         """Determine if a given message would be proxied under this set of proxy tags.
         
-        Args
+        Args:
             message: Message to parse. Should already be stripped of outer whitespace.
         """
         return any(proxy_tag.match(message) for proxy_tag in self)
@@ -117,18 +174,22 @@ class System:
 
     Args:
         id: The system's five-character lowercase ID.
-        name: The name of the system.
-        description: The description of the system.
-        tag: The system's tag appended to display names.
-        avatar_url: The system's avatar URL.
-        tz: The system's tzdb timezone. May be a string or a pytz.timezone object.
         created: The system's creation date. May be a string formatted as
             ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format) or a
-            datetime.datetime object.
-        description_privacy: The system's description privacy, either "public" or "private".
-        member_list_privacy: The system's member list privacy, either "public" or "private".
-        front_privacy: The system's fronting privacy, either "public" or "private".
-        front_history_privacy: The system's fronting history privacy, either "public" or "private".
+            Timestamp object.
+        name: The name of the system. Default None.
+        description: The description of the system. Default None.
+        tag: The system's tag appended to display names. Default None.
+        avatar_url: The system's avatar URL. Default None.
+        tz: The system's tzdb timezone. May be a string or a pytz.timezone object. Default is UTC.
+        description_privacy: The system's description privacy, either Privacy.PUBLIC or
+            Privacy.PRIVATE. Default is public.
+        member_list_privacy: The system's member list privacy, either Privacy.PUBLIC or
+            Privacy.PRIVATE. Default is public.
+        front_privacy: The system's fronting privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
+            Default is public.
+        front_history_privacy: The system's fronting history privacy, either Privacy.PUBLIC or
+            Privacy.PRIVATE. Default is public.
 
     Attributes:
         id (str): The system's five-character lowercase ID.
@@ -136,64 +197,56 @@ class System:
         description (str): The description of the system.
         tag (str): The system's tag appended to display names.
         avatar_url (str): The system's avatar URL.
-        tz (str): The system's tzdb timezone, as a string.
-        created: The system's ISO formatted creation date.
-        description_privacy: The system's description privacy, either "public" or "private".
-        member_list_privacy: The system's member list privacy, either "public" or "private".
-        front_privacy: The system's fronting privacy, either "public" or "private".
-        front_history_privacy: The system's fronting history privacy, either "public" or "private".
+        tz (pytz.timezone): The system's tzdb timezone.
+        created (Timestamp): The system's timestamp at creation.
+        description_privacy (Privacy): The system's description privacy.
+        member_list_privacy (Privacy): The system's member list privacy.
+        front_privacy (Privacy): The system's fronting privacy.
+        front_history_privacy (Privacy): The system's fronting history privacy.
     """
 
     def __init__(self, *,
         id: str,
+        created: Union[Timestamp,str],
         name: Optional[str]=None,
         description: Optional[str]=None,
         tag: Optional[str]=None,
         avatar_url: Optional[str]=None,
-        tz: Union[timezone,str]="UTC",
-        created: Union[datetime,str,None]=None,
-        description_privacy: str="public",
-        member_list_privacy: str="public",
-        front_privacy: str="public",
-        front_history_privacy: str="public"
+        tz: Union[pytz.timezone,str]="UTC",
+        description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        member_list_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        front_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        front_history_privacy: Union[Privacy,str]=Privacy.PUBLIC
     ):
         self.id = id
-        if created is None:
-            self._created = datetime.utcnow()
-        elif isinstance(created, str):
-            self._created = datetime.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ") # expected ISO 8601
+
+        if isinstance(created, str):
+            self.created = Timestamp.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ")
         elif isinstance(created, datetime):
-            self._created = datetime
+            self.created = Timestamp.from_datetime(created)
+        elif isinstance(created, Timestamp):
+            self.created = created
+
         if isinstance(tz, str):
-            self._tz = timezone(tz) # expected tzdb identifier
-        elif isinstance(tz, timezone):
-            self._tz = tz
+            self.tz = pytz.timezone(tz)
+        elif isinstance(tz, pytz.timezone):
+            self.tz = tz
+
         self.name = name
         self.description = description
         self.tag = tag
         self.avatar_url = avatar_url
-        self.description_privacy = description_privacy
-        self.member_list_privacy = member_list_privacy
-        self.front_privacy = front_privacy
-        self.front_history_privacy = front_history_privacy
+
+        self.description_privacy = Privacy(description_privacy)
+        self.member_list_privacy = Privacy(member_list_privacy)
+        self.front_privacy = Privacy(front_privacy)
+        self.front_history_privacy = Privacy(front_history_privacy)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
 
     def __str__(self):
         return self.id
-
-    @property
-    def created(self) -> str:
-        """System creation time, UTC.
-        """
-        return self._created.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
-    
-    @property
-    def tz(self) -> str:
-        """System time zone.
-        """
-        return self._tz.zone
 
     @staticmethod
     def from_dict(system: Dict[str,Any]):
@@ -229,12 +282,12 @@ class System:
             "description": self.description,
             "tag": self.tag,
             "avatar_url": self.avatar_url,
-            "tz": self.tz,
-            "created": self.created,
-            "description_privacy": self.description_privacy,
-            "member_list_privacy": self.member_list_privacy,
-            "front_privacy": self.front_privacy,
-            "front_history_privacy": self.front_history_privacy
+            "tz": self.tz.zone,
+            "created": self.created.to_iso(),
+            "description_privacy": self.description_privacy.value,
+            "member_list_privacy": self.member_list_privacy.value,
+            "front_privacy": self.front_privacy.value,
+            "front_history_privacy": self.front_history_privacy.value
         }
     
 class Member:
@@ -243,111 +296,120 @@ class Member:
     Args:
         id: The member's five-letter lowercase ID.
         name: The member's name.
-        name_privacy: The member's name privacy, either "public" or "private".
         created: The member's creation date. May be a string formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format) or a
-            datetime.datetime object.
-        display_name: The member's display name.
-        description: The member's description.
-        description_privacy: The member's description privacy, either "public" or "private".
-        color: The member's color.
-        birthday: The member's birthdate. May be a string formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format) or a
-            datetime.datetime object.
-        birthday_privacy: The member's birthdate privacy, either "public" or "private".
-        pronouns: The member's pronouns.
-        pronoun_privacy: The member's pronouns privacy, either "public" or "private".
+            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
+            Timestamp, or a datetime.
+        name_privacy: The member's name privacy, either Privacy.PUBLIC or Privacy.PRIVATE. Default
+            is public.
+        display_name: The member's display name. Default is None.
+        description: The member's description. Default is None.
+        description_privacy: The member's description privacy, either Privacy.PUBLIC or
+            Privacy.PRIVATE. Default is public.
+        color: The member's color. Default is None.
+        birthday: The member's birthdate. May be a string formatted as ``{year}-{month}-{day}``, a
+            Timestamp, or a datetime. Default is None.
+        birthday_privacy: The member's birthdate privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
+            Default is public.
+        pronouns: The member's pronouns. Default is None.
+        pronoun_privacy: The member's pronouns privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
+            Default is public.
         avatar_url: The member's avatar URL.
-        avatar_privacy: The member's avatar privacy, either "public" or "private".
+        avatar_privacy: The member's avatar privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
+            Default is public.
         keep_proxy: Whether the member's proxy tags remain in the proxied message (``True``) or not
-            (``False``).
+            (``False``). Default is ``False``.
         metadata_privacy: The member's metadata (eg. creation timestamp, message count, etc.)
-            privacy. Must be either "public" or "private".
-        proxy_tags: The member's proxy tags.
-        visibility: The visibility privacy setting of the member, either "public" or "private".
+            privacy. Must be either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+        proxy_tags: The member's proxy tags. Default is an empty set of proxy tags.
+        visibility: The visibility privacy setting of the member, either Privacy.PUBLIC or
+            Privacy.PRIVATE. Default is public.
 
     Attributes:
         id (str): The member's five-letter lowercase ID.
         name (Optional[str]): The member's name.
-        name_privacy (str): The member's name privacy, either "public" or "private".
-        created (str): The member's ISO formatted creation date.
+        created (Timestamp): The member's creation date.
+        name_privacy (Privacy): The member's name privacy.
         display_name (Optional[str]): The member's display name.
         description (Optional[str]): The member's description.
-        description_privacy (str): The member's description privacy, either "public" or "private".
+        description_privacy (Privacy): The member's description privacy.
         color (Optional[str]): The member's color.
-        birthday (Optional[str]): The member's ISO formatted birthdate.
-        birthday_privacy (str): The member's birthdate privacy, either "public" or "private".
+        birthday (Timestamp): The member's birthdate.
+        birthday_privacy (Privacy): The member's birthdate privacy.
         pronouns (Optional[str]): The member's pronouns.
-        pronoun_privacy (str): The member's pronouns privacy, either "public" or "private".
+        pronoun_privacy (Privacy): The member's pronouns privacy.
         avatar_url (Optional[str]): The member's avatar URL.
-        avatar_privacy (str): The member's avatar privacy, either "public" or "private".
+        avatar_privacy (Privacy): The member's avatar privacy.
         keep_proxy (bool): Whether the member's proxy tags remain in the proxied message (``True``)
             or not (``False``).
-        metadata_privacy (str): The member's metadata (eg. creation timestamp, message count, etc.)
-            privacy, either "public" or "private".
+        metadata_privacy (Privacy): The member's metadata (eg. creation timestamp, message count,
+            etc.) privacy.
         proxy_tags (ProxyTags): The member's proxy tags.
-        visibility (str): The visibility privacy setting of the member, either "public" or
-            "private".
+        visibility (Privacy): The visibility privacy setting of the member.
     """
 
     def __init__(self, *,
         id: str,
-        name: Optional[str]=None,
-        name_privacy: str="public",
-        created: Union[datetime,str,None]=None,
+        name: str,
+        created: Union[Timestamp,str],
+        name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         display_name: Optional[str]=None,
         description: Optional[str]=None,
-        description_privacy: str="public",
+        description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         color: Optional[str]=None,
-        birthday: Optional[str]=None,
-        birthday_privacy: str="public",
+        birthday: Union[Timestamp,str,None]=None,
+        birthday_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         pronouns: Optional[str]=None,
-        pronoun_privacy: str="public",
+        pronoun_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         avatar_url: Optional[str]=None,
-        avatar_privacy: str="public",
+        avatar_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         keep_proxy: bool=False,
-        metadata_privacy: str="public",
+        metadata_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         proxy_tags: Optional[ProxyTags]=None,
-        visibility: str="public"
+        visibility: Union[Privacy,str]=Privacy.PUBLIC
     ):
         self.id = id
         self.name = name
-        self.name_privacy = name_privacy
-        if created is None:
-            self._created = datetime.utcnow()
-        elif isinstance(created, str):
-            self._created = datetime.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ") # expected ISO 8601
+
+        if isinstance(created, str):
+            self.created = Timestamp.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ")
         elif isinstance(created, datetime):
-            self._created = datetime
+            self.created = Timestamp.from_datetime(created)
+        elif isinstance(created, Timestamp):
+            self.created = created
+
         self.display_name = display_name
         self.description = description
-        self.description_privacy = description_privacy
         self.color = color
-        self.birthday = birthday
-        self.birthday_privacy = birthday_privacy
+
+        if isinstance(birthday, str):
+            self.birthday = Timestamp.strptime(birthday, r"%Y-%m-%d")
+        elif isinstance(birthday, datetime):
+            self.birthday = Timestamp.from_datetime(birthday)
+        elif isinstance(birthday, Timestamp):
+            self.birthday = birthday
+
         self.pronouns = pronouns
-        self.pronoun_privacy = pronoun_privacy
         self.avatar_url = avatar_url
-        self.avatar_privacy = avatar_privacy
         self.keep_proxy = keep_proxy
-        self.metadata_privacy = metadata_privacy
+
         if proxy_tags is None:
             self.proxy_tags = ProxyTags()
         else:
             self.proxy_tags = proxy_tags
-        self.visibility = visibility
+
+        self.name_privacy = Privacy(name_privacy)
+        self.description_privacy = Privacy(description_privacy)
+        self.birthday_privacy = Privacy(birthday_privacy)
+        self.pronoun_privacy = Privacy(pronoun_privacy)
+        self.avatar_privacy = Privacy(avatar_privacy)
+        self.metadata_privacy = Privacy(metadata_privacy)
+        self.visibility = Privacy(visibility)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
 
     def __str__(self):
         return self.id
-
-    @property
-    def created(self) -> str:
-        """Member creation time, UTC.
-        """
-        return self._created.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
     def from_dict(member: Dict[str,Any]):
@@ -391,30 +453,31 @@ class Member:
         return {
             "id": self.id,
             "name": self.name,
-            "name_privacy": self.name_privacy,
-            "created": self.created,
+            "name_privacy": self.name_privacy.value,
+            "created": self.created.to_iso(),
             "display_name": self.display_name,
             "description": self.description,
-            "description_privacy": self.description_privacy,
+            "description_privacy": self.description_privacy.value,
             "color": self.color,
-            "birthday": self.birthday,
-            "birthday_privacy": self.birthday_privacy,
+            "birthday": self.birthday.to_birthday(),
+            "birthday_privacy": self.birthday_privacy.value,
             "pronouns": self.pronouns,
-            "pronoun_privacy": self.pronoun_privacy,
+            "pronoun_privacy": self.pronoun_privacy.value,
             "avatar_url": self.avatar_url,
-            "avatar_privacy": self.avatar_privacy,
+            "avatar_privacy": self.avatar_privacy.value,
             "keep_proxy": self.keep_proxy,
-            "metadata_privacy": self.metadata_privacy,
+            "metadata_privacy": self.metadata_privacy.value,
             "proxy_tags": self.proxy_tags.json(),
-            "visibility": self.visibility,
+            "visibility": self.visibility.value,
         }
 
 class Switch:
     """Represents a switch event.
 
     Args:
-        timestamp: Timestamp of the switch. If a string, must be formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format).
+        timestamp: Timestamp of the switch. May be a string for
+            atted as ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601
+            format), a Timestamp, or a datetime.
         members: Members involved. May be a list of the five-letter member IDs as strings, or a
             list of Member models, though cannot be mixed.
 
@@ -423,25 +486,20 @@ class Switch:
         members (Union[Sequence[str],Sequence[Member]]): Members involved.
     """
     def __init__(self, *,
-        timestamp: Union[datetime,str,None]=None,
-        members: Union[Sequence[str],Sequence[Member],None]=None
+        timestamp: Union[Timestamp,str],
+        members: Union[Sequence[str],Sequence[Member]]
     ):
-        if timestamp is None:
-            self._timestamp = datetime.utcnow()
-        elif isinstance(timestamp, str):
-            self._timestamp = datetime.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
+        if isinstance(timestamp, str):
+            self.timestamp = Timestamp.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
         elif isinstance(timestamp, datetime):
-            self._timestamp = datetime
+            self.timestamp = Timestamp.from_datetime(timestamp)
+        elif isinstance(timestamp, Timestamp):
+            self.timestamp = timestamp
+
         if members is None or len(members) == 0:
             self.members = []
         else:
             self.members = [member for member in members]
-
-    @property
-    def timestamp(self) -> str:
-        """Timestamp of switch, UTC.
-        """
-        return self._timestamp.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
     def from_dict(switch: Dict[str,str]):
@@ -460,12 +518,11 @@ class Switch:
             members=switch["members"]
         )
 
-
     def json(self) -> Dict[str,Any]:
         """Return Python Dict representing this switch.
         """
         return {
-            "timestamp": self.timestamp,
+            "timestamp": self.timestamp.to_iso(),
             "members": self.members
         }
 
@@ -473,8 +530,9 @@ class Message:
     """Represents a proxied message.
 
     Args:
-        timestamp: Timestamp of the switch. If a string, must be formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format).
+        timestamp: Timestamp of the message. May be a string for
+            atted as ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601
+            format), a Timestamp, or a datetime.
         id: The ID of the Discord message sent by the webhook.
         original: The ID of the (deleted) Discord message sent by the account.
         sender: The user ID of the account that sent the message.
@@ -483,7 +541,7 @@ class Message:
         member: The Member that proxied the message.
 
     Attributes:
-        timestamp (str): ISO formatted timestamp of the switch.
+        timestamp (Timestamp): Timestamp of the message.
         id (int): The ID of the Discord message sent by the webhook.
         original (int): The ID of the (deleted) Discord message sent by the account.
         sender (int): The user ID of the account that sent the message.
@@ -492,7 +550,7 @@ class Message:
         member (Member): The Member that proxied the message.
     """
     def __init__(self, *,
-        timestamp: Union[datetime,str],
+        timestamp: Union[Timestamp,str],
         id: Union[int,str],
         original: Union[int,str],
         sender: Union[int,str],
@@ -500,24 +558,18 @@ class Message:
         system: System,
         member: Member
     ):
-        if timestamp is None:
-            self._timestamp = datetime.utcnow()
-        elif isinstance(timestamp, str):
-            self._timestamp = datetime.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
+        if isinstance(timestamp, str):
+            self.timestamp = Timestamp.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
         elif isinstance(timestamp, datetime):
-            self._timestamp = datetime
+            self.timestamp = Timestamp.from_datetime(timestamp)
+        elif isinstance(timestamp, Timestamp):
+            self.timestamp = timestamp
         self.id = int(id)
         self.original = int(original)
         self.sender = int(sender)
         self.channel = int(channel)
         self.system = system
         self.member = member
-
-    @property
-    def timestamp(self) -> str:
-        """Timestamp of message, UTC.
-        """
-        return self._timestamp.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
     @staticmethod
     def from_dict(message: Dict[str,Any]):
@@ -544,7 +596,7 @@ class Message:
         """Return Python Dict representing this Message.
         """
         return {
-            "timestamp": self.timestamp,
+            "timestamp": self.timestamp.to_iso(),
             "id": str(self.id),
             "original": str(self.original),
             "sender": str(self.sender),
@@ -552,8 +604,5 @@ class Message:
             "system": self.system.json(),
             "member": self.member.json()
         }
-    
-class Privacy(Enum):
-    PUBLIC = "public"
-    PRIVATE = "private"
-    
+
+

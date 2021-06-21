@@ -1,3 +1,4 @@
+
 from .v1.client import Client
 from .v1.models import (
     Member,
@@ -5,4 +6,5 @@ from .v1.models import (
     ProxyTag,
     ProxyTags,
     Switch,
+    Privacy
 )

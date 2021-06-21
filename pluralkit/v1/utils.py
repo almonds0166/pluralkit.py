@@ -1,16 +1,15 @@
-from .models import Member, System, ProxyTags, ProxyTag, Privacy
-from .errors import *
 
 from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
 )
-
 import datetime
-from datetime import datetime as dt
 import aiohttp
 from colour import Color
+
+from .models import Member, System, ProxyTags, ProxyTag, Privacy
+from .errors import *
 
 MEMBER_ATTRS = (
     "name", 
@@ -45,7 +44,7 @@ class Utils(object):
                 kwargs[key] = value.strftime("%Y-%m-%d")
             elif isinstance(value, str):
                 try:
-                    birthday = dt.strptime(value,'%Y-%m-%d')
+                    birthday = datetime.datetime.strptime(value,'%Y-%m-%d')
                 except:
                     birthday = None
                     raise InvalidDate(value)

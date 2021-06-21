@@ -117,7 +117,20 @@ class Client:
             member (Member): The next system member.
         """
 
-        url = Client.get_url(self, system)
+        if system is None:
+            # get own system
+            await self._check_self_id()
+            url = f"{self.SERVER}/s/{self.id}/members"
+        elif isinstance(system, System):
+            # System object
+            url = f"{self.SERVER}/s/{system.id}/members"
+        elif isinstance(system, str):
+            # system ID
+            url = f"{self.SERVER}/s/{system}/members"
+        elif isinstance(system, int):
+            # Discord user ID
+            system = await self.get_system(system)
+            url = f"{self.SERVER}/s/{system.id}/members"
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
             async with session.get(url, ssl=True) as response:
@@ -149,8 +162,7 @@ class Client:
             **kwargs: Any number of keyworded patchable values from `PluralKit's member model`_.
         
         Keyword Args:
-            name (Optional[str]): New name of the member. If ``None`` is passed, this field is
-                cleared.
+            name (str): New name of the member.
             display_name (Optional[str]): New display name of the member. If ``None`` is passed,
                 this field is cleared.
             description (Optional[str]): New description of the member. If ``None`` is passed, this
@@ -160,9 +172,9 @@ class Client:
             color (Union[str,None]): New color of the member. If a string, must be formatted
                 as a 6-character hex string (e.g. "ff7000"), sans the # symbol. If ``None`` is
                 passed, this field is cleared.
-            avatar_url (str): New avatar URL for the member. If ``None`` is passed, this field is
-                cleared.
-            birthday (Union[datetime,str]): New birthdate of the member. If a string, must be
+            avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this
+                field is cleared.
+            birthday (Union[Timestamp,str]): New birthdate of the member. If a string, must be
                 formatted as ``YYYY-MM-DD``. A year of ``0001`` or ``0004`` represents a hidden
                 year. If ``None`` is passed, this field is cleared.
             proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
@@ -170,20 +182,24 @@ class Client:
                 sequence of Python dictionaries with the keys "prefix" and "suffix".
             keep_proxy (bool): New truth value for whether to display the member's proxy tags in
                 the proxied message.
-            visibility (Optional[str]): New visibility privacy for the member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            name_privacy (Optional[str]): New name privacy for the member. Must be either "public"
-                or "private". If ``None`` is passed, this field is reset to "public".
-            description_privacy (Optional[str]): New description privacy for the member. Must be
-                either "public" or "private". If ``None`` is passed, this field is reset to
-                "public".
-            avatar_privacy (Optional[str]): New avatar privacy for the member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            pronoun_privacy (Optional[str]): New pronouns privacy for the member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            metadata_privacy (Optional[str]): New metadata (eg. creation timestamp, message count,
-                etc.) privacy for the member. Must be either "public" or "private". If ``None`` is
-                passed, this field is reset to "public".
+            visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
+                reset to public.
+            name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
+                Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is reset to
+                public.
+            description_privacy (Union[Privacy,str,None]): New description privacy for the member.
+                Must be either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field
+                is reset to public.
+            avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
+                reset to public.
+            pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
+                reset to public.
+            metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
+                count, etc.) privacy for the member. Must be either Privacy.PUBLIC or
+                Privacy.PRIVATE. If ``None`` is passed, this field is reset to public.
 
         Returns:
             member (Member): Modified member object.
@@ -207,6 +223,7 @@ class Client:
                     return Member.from_dict(item)
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+    
     async def get_member(self, member_id: str) -> Member:
         """Gets a system member
 
@@ -236,39 +253,34 @@ class Client:
             **kwargs: Any number of keyworded patchable values from `PluralKit's member model`_.
         
         Keyword Args:
-            display_name (Optional[str]): Display name of the member. If ``None`` is passed,
-                this field is cleared.
-            description (Optional[str]): Description of the new member. If ``None`` is passed, this
-                field is cleared.
-            pronouns (Optional[str]): Pronouns of the new member. If ``None`` is passed, this field
-                is cleared.
-            color (Optional[str]): Color of the new member. If a string, must be formatted
-                as a 6-character hex string (e.g. "ff7000"), sans the # symbol. If ``None`` is
-                passed, this field is cleared.
-            avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this field is
-                cleared.
-            birthday (Union[datetime, str, None]): Birthdate of the new member. If a string, must be
+            display_name (Optional[str]): New display name of the member. Default is None.
+            description (Optional[str]): New description of the member. Default is None.
+            pronouns (Optional[str]): New pronouns of the member. Default is None.
+            color (Union[str,None]): New color of the member. If a string, must be formatted
+                as a 6-character hex string (e.g. "ff7000"), sans the # symbol. Default is None.
+            avatar_url (Optional[str]): New avatar URL for the member. Default is None.
+            birthday (Union[Timestamp,str]): New birthdate of the member. If a string, must be
                 formatted as ``YYYY-MM-DD``. A year of ``0001`` or ``0004`` represents a hidden
-                year. If ``None`` is passed, this field is cleared.
-            proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]) Proxy
-                tags of the new member. May be a ProxyTags object, a sequence of ProxyTag objects, or a
-                sequence of Python dictionaries with the keys "prefix" and "suffix".
-            keep_proxy (bool): Truth value for whether to display the new member's proxy tags in
-                the proxied message, defaults to False.
-            visibility (Optional[str]): Visibility privacy for the new member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            name_privacy (Optional[str]): Name privacy for the new member. Must be either "public"
-                or "private". If ``None`` is passed, this field is reset to "public".
-            description_privacy (Optional[str]): Description privacy for the new member. Must be
-                either "public" or "private". If ``None`` is passed, this field is reset to
-                "public".
-            avatar_privacy (Optional[str]): Avatar privacy for the new member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            pronoun_privacy (Optional[str]): Pronouns privacy for the new member. Must be either
-                "public" or "private". If ``None`` is passed, this field is reset to "public".
-            metadata_privacy (Optional[str]): Metadata (eg. creation timestamp, message count,
-                etc.) privacy for the new member. Must be either "public" or "private". If ``None`` is
-                passed, this field is reset to "public".
+                year. Default is None.
+            proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
+                tags of the member. May be a ProxyTags object, a sequence of ProxyTag objects, or a
+                sequence of Python dictionaries with the keys "prefix" and "suffix". Default is an
+                empty set of proxy tags.
+            keep_proxy (bool): New truth value for whether to display the member's proxy tags in
+                the proxied message. Default is ``False``.
+            visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
+                Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            description_privacy (Union[Privacy,str,None]): New description privacy for the member.
+                Must be either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
+                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
+                count, etc.) privacy for the member. Must be either Privacy.PUBLIC or
+                Privacy.PRIVATE. Default is public.
 
         Returns:
             member (Member): New member object.
@@ -298,6 +310,8 @@ class Client:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
 
     async def get_switches(self, system=None):
+        """Todo.
+        """
         
         if system is None: raise Exception("Must have system ID, even with an authorization token")
 
@@ -332,6 +346,9 @@ class Client:
                     yield switch
 
     async def new_switch(self, members: Sequence[str]):
+        """Todo.
+        """
+
         url = "https://api.pluralkit.me/v1/s/switches"
         payload = json.dumps({"members": members}, ensure_ascii=False)
 

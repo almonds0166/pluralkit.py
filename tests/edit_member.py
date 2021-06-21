@@ -47,3 +47,6 @@ def run(token: str=None):
         print("^C")
     except:
         logging.exception("An exception occurred")
+
+if __name__ == "__main__":
+    run()
