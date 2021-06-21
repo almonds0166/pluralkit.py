@@ -7,7 +7,7 @@ __all__ = (
     "AccessForbidden",
     "InvalidKwarg",
     "InvalidColor",
-    "InvalidDate"
+    "InvalidBirthday"
 )
 
 class PluralKitException(Exception):
@@ -75,7 +75,7 @@ class InvalidColor(Exception):
                 f"Given value is not a string or Color object: `{color}`"
             )
 
-class InvalidDate(Exception):
+class InvalidBirthday(Exception):
     """
     Thrown when an invalid string is passed for the "Birthday" field of a member object. (Must be yyyy-mm-dd)
     """

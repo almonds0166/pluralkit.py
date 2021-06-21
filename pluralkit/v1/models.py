@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta, tzinfo
 from enum import Enum
+import string
 from typing import (
     Any,
     Union, Optional,
@@ -7,7 +9,7 @@ from typing import (
 )
 
 import pytz
-from colour import Color
+import colour
 from .errors import *
 
 class Privacy(Enum):
@@ -16,46 +18,236 @@ class Privacy(Enum):
     PUBLIC = "public"
     PRIVATE = "private"
     NULL = None # legacy, effectively resets privacy to "public"
+
+class Color(colour.Color):
+    """Represents a color.
+
+    This class is initialized in the same way that a colour.Color object is. It may also take a
+    colour.Color object directly.
+    """
+    def __init__(self, *args, **kwargs):
+        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], colour.Color):
+            super().__init__(args[0].hex_l)
+        else:
+            super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def parse(c):
+        """Takes in a colour.Color or str and converts to colour.Color as needed.
+
+        Args:
+            color (Union[Color,colour.Color,str,None]): The color, represented as a colour.Color or
+                str. If a string, may either be in the format as expected by PluralKit's API
+                internally (e.g. ``ff00ff``) or a color string that can be taken by a Color object
+                (e.g. ``white``).
+
+        Returns:
+            color (Optional[Color]): The Color object, or None if input is None.
+
+        Raises:
+            TypeError: If the given argument is neither a Color, colour.Color, or str.
+        """
+        if c is None: return None
+
+        if isinstance(c, colour.Color):
+            return c
+
+        if isinstance(c, str):
+            if len(c) == 6 and set(c).issubset(set(string.hexdigits)):
+                return Color.from_json(c)
+            else:
+                return Color(c)
+
+        raise TypeError(
+            f"Argument `c` must be of type colour.Color or str; received {type(c)=}."
+        )
+
+    @staticmethod
+    def from_json(color: str):
+        """Takes in a string (as returned by the API) and returns the Color.
+        """
+        return Color.__new__(Color, f"#{color}")
+
+    def json(self):
+        """Returns the hex of the Color sans the "#" symbol.
+
+        Example:
+            ``Color("white").json()`` would return `"ffffff"`.
+        """
+        return self.hex_l[1:]
+
+class Timezone:
+    """Represents a tzdb time zone.
+
+    This class is initialized in the same way that a tzinfo object is. It may also
+    take a tzinfo object directly.
+
+    Args:
+        tz (Union[str,tzinfo]): The timezone, either as a string or as a tzinfo (e.g. from
+            pytz.timezone).
+    """
+    def __init__(self, *args, **kwargs):
+        if len(args) != 1 or len(kwargs) != 0:
+            raise TypeError(
+                f"Timezone is initialized with exactly one positional argument `tz`; " \
+                f"received {len(args)=} and {len(kwargs)=}"
+            )
+        if isinstance(args[0], tzinfo):
+            self.tz = args[0]
+        else:
+            self.tz = pytz.timezone(args[0])
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.zone})"
+
+    @property
+    def zone(self):
+        return self.tz.zone
+
+    @staticmethod
+    def parse(tz):
+        """Takes in a Timezone, tzinfo, or str and converts to Timezone as needed.
+
+        Args:
+            tz (Union[Timezone,tzinfo,str]): The timezone, represented as a
+                Timezone, tzinfo, or str.
+
+        Raises:
+            TypeError: If given argument is neither a Timezone, tzinfo, nor str.
+        """
+        if isinstance(tz, Timezone):
+            return tz
+
+        if isinstance(tz, (tzinfo, str)):
+            return Timezone(tz)
+
+        raise TypeError(
+            f"Argument `tz` must be of type Timezone, tzinfo, or str; " \
+            f"received {type(tz)=}."
+        )
+
+    @staticmethod
+    def from_json(tz: str):
+        """Takes in a string (as returned by the API) and returns the Timezone.
+        """
+        return Timezone(tz)
+
+    def json(self):
+        """Returns the string representation of this timezone as expected by the API.
+        """
+        return self.zone
     
 class Timestamp(datetime):
     """Represents a PluralKit UTC timestamp.
 
-    This class is initialized in the same way that a datetime object is.
-
-    Hint:
-        Use Timestamp.from_datetime to convert from a datetime object.
+    This class is initialized in the same way that a datetime object is. It may also take a
+    datetime object directly.
     """
+    def __new__(cls, *args, **kwargs):
+        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], datetime):
+            dt = args[0].astimezone(pytz.UTC) # convert to UTC if timezone info is available.
+            return datetime.__new__(cls,
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second,
+                dt.microsecond
+            )
+        else:
+            return datetime.__new__(cls, *args, **kwargs)
 
     @staticmethod
-    def from_datetime(dt: datetime):
-        """Cast a datetime object to the corresponding Timestamp.
+    def parse(ts):
+        """Takes in a Timestamp, datetime, or str, converts to Timestamp as needed.
 
         Args:
-            dt: The datetime object to cast. If timezone naive, it's assumed to be UTC.
+            ts (Union[Timestamp,datetime,str]): The timestamp, represented as a Timestamp,
+                datetime, or str.
 
         Returns:
-            timestamp (Timestamp).
+            timestamp (Timestamp): The Timestamp object.
+
+        Raises:
+            TypeError: If given argument is neither a Timestamp, datetime, or str.
         """
-        dt = dt.astimezone(pytz.UTC) # convert to UTC if timezone info is available.
-        self.dt = Timestamp(
-            dt.year,
-            dt.month,
-            dt.day,
-            dt.hour,
-            dt.minute,
-            dt.second,
-            dt.microsecond
+        if isinstance(ts, Timestamp):
+            return ts
+
+        if isinstance(ts, datetime):
+            return Timestamp(ts)
+
+        if isinstance(ts, str):
+            return Timestamp.from_json(ts)
+
+        raise TypeError(
+            f"Argument `ts` must be of type Timestamp, datetime.datetime, or str; " \
+            f"received {type(ts)=}."
         )
 
-    def to_iso(self) -> str:
+    @staticmethod
+    def from_json(bd: str):
+        """Takes in a string (as returned by the API) and returns the Timestamp.
+        """
+        return Timestamp.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ")
+
+    def json(self) -> str:
         """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
         """
-        return datetime.strptime(self, r"%Y-%m-%dT%H:%M:%S.%fZ")
+        return self.stftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
-    def to_birthday(self) -> str:
-        """Convert this timestamp to the YYYY-MM-DD representation, suitable for birthdates.
+class Birthday(Timestamp):
+    """Represents a birthday.
+    """
+    @property
+    def hidden_year(self):
+        return self.year in (1, 4)
+
+    @hidden_year.setter
+    def hidden_year(self, value: bool):
+        self.year = 1
+
+    @staticmethod
+    def parse(bd):
+        """Takes in a Birthday, datetime, or str, converts to Birthday as needed.
+
+        Args:
+            bd (Union[Birthday,datetime,str,None]): The birthday, represented as a Birthday,
+            datetime, or str.
+
+        Returns:
+            birthday (Optional[Birthday]): The Birthday object, or None if input is None.
+
+        Raises:
+            TypeError: If given argument is neither a Birthday, datetime, or str.
         """
-        return datetime.strptime(self, r"%Y-%m-%d")
+        if bd is None: return None
+
+        if isinstance(bd, Birthday):
+            return bd
+
+        if isinstance(bd, datetime):
+            return Birthday(bd)
+
+        if isinstance(bd, str):
+            return Birthday.from_json(bd)
+
+        raise TypeError(
+            f"Argument `bd` must be None or of type Birthday, datetime.datetime, or str; " \
+            f"received {type(bd)=}."
+        )
+
+    @staticmethod
+    def from_json(bd: str):
+        """Takes in a string (as returned by the API) and returns the Birthday.
+        """
+        return Birthday.strptime(bd, r"%Y-%m-%d")
+
+    def json(self) -> str:
+        """Returns the YYYY-MM-DD formatted birthdate.
+        """
+        return self.strftime(r"%Y-%m-%d")
 
 class ProxyTag:
     """Represents a single PluralKit proxy tag.
@@ -81,7 +273,7 @@ class ProxyTag:
         self.suffix = suffix
 
     @staticmethod
-    def from_dict(proxy_tag: Dict[str,str]):
+    def from_json(proxy_tag: Dict[str,str]):
         """Static method to convert a proxy tag Dict to a ProxyTag.
 
         Args:
@@ -145,7 +337,7 @@ class ProxyTags:
         return self._proxy_tags[index]
 
     @staticmethod
-    def from_dict(proxy_tags: Sequence[Dict[str,str]]):
+    def from_json(proxy_tags: Sequence[Dict[str,str]]):
         """Static method to convert a list of proxy tags to a ProxyTags object.
 
         Args:
@@ -154,7 +346,7 @@ class ProxyTags:
         Returns:
             proxy_tags (ProxyTags): The corresponding ProxyTags object.
         """
-        return ProxyTags(ProxyTag.from_dict(proxy_tag) for proxy_tag in proxy_tags)
+        return ProxyTags(ProxyTag.from_json(proxy_tag) for proxy_tag in proxy_tags)
 
     def match(self, message: str) -> bool:
         """Determine if a given message would be proxied under this set of proxy tags.
@@ -181,7 +373,8 @@ class System:
         description: The description of the system. Default None.
         tag: The system's tag appended to display names. Default None.
         avatar_url: The system's avatar URL. Default None.
-        tz: The system's tzdb timezone. May be a string or a pytz.timezone object. Default is UTC.
+        tz: The system's tzdb timezone. May be a Timezone, tzinfo, or str. Default
+            is UTC.
         description_privacy: The system's description privacy, either Privacy.PUBLIC or
             Privacy.PRIVATE. Default is public.
         member_list_privacy: The system's member list privacy, either Privacy.PUBLIC or
@@ -197,7 +390,7 @@ class System:
         description (str): The description of the system.
         tag (str): The system's tag appended to display names.
         avatar_url (str): The system's avatar URL.
-        tz (pytz.timezone): The system's tzdb timezone.
+        tz (Timezone): The system's tzdb timezone.
         created (Timestamp): The system's timestamp at creation.
         description_privacy (Privacy): The system's description privacy.
         member_list_privacy (Privacy): The system's member list privacy.
@@ -207,35 +400,26 @@ class System:
 
     def __init__(self, *,
         id: str,
-        created: Union[Timestamp,str],
+        created: Union[Timestamp,datetime,str],
         name: Optional[str]=None,
         description: Optional[str]=None,
         tag: Optional[str]=None,
         avatar_url: Optional[str]=None,
-        tz: Union[pytz.timezone,str]="UTC",
+        tz: Union[Timezone,tzinfo,str]="UTC",
         description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         member_list_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         front_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         front_history_privacy: Union[Privacy,str]=Privacy.PUBLIC
     ):
         self.id = id
-
-        if isinstance(created, str):
-            self.created = Timestamp.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ")
-        elif isinstance(created, datetime):
-            self.created = Timestamp.from_datetime(created)
-        elif isinstance(created, Timestamp):
-            self.created = created
-
-        if isinstance(tz, str):
-            self.tz = pytz.timezone(tz)
-        elif isinstance(tz, pytz.timezone):
-            self.tz = tz
-
         self.name = name
+
         self.description = description
         self.tag = tag
         self.avatar_url = avatar_url
+
+        self.created = Timestamp.parse(created)
+        self.tz = Timezone.parse(tz)
 
         self.description_privacy = Privacy(description_privacy)
         self.member_list_privacy = Privacy(member_list_privacy)
@@ -249,7 +433,7 @@ class System:
         return self.id
 
     @staticmethod
-    def from_dict(system: Dict[str,Any]):
+    def from_json(system: Dict[str,Any]):
         """Static method to convert a system Dict to a System object.
 
         Args:
@@ -282,8 +466,8 @@ class System:
             "description": self.description,
             "tag": self.tag,
             "avatar_url": self.avatar_url,
-            "tz": self.tz.zone,
-            "created": self.created.to_iso(),
+            "tz": self.tz.json(),
+            "created": self.created.json(),
             "description_privacy": self.description_privacy.value,
             "member_list_privacy": self.member_list_privacy.value,
             "front_privacy": self.front_privacy.value,
@@ -350,13 +534,13 @@ class Member:
     def __init__(self, *,
         id: str,
         name: str,
-        created: Union[Timestamp,str],
+        created: Union[Timestamp,datetime,str],
         name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         display_name: Optional[str]=None,
         description: Optional[str]=None,
         description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        color: Optional[str]=None,
-        birthday: Union[Timestamp,str,None]=None,
+        color: Union[Color,str,None]=None,
+        birthday: Union[Birthday,datetime,str,None]=None,
         birthday_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         pronouns: Optional[str]=None,
         pronoun_privacy: Union[Privacy,str]=Privacy.PUBLIC,
@@ -370,24 +554,12 @@ class Member:
         self.id = id
         self.name = name
 
-        if isinstance(created, str):
-            self.created = Timestamp.strptime(created, r"%Y-%m-%dT%H:%M:%S.%fZ")
-        elif isinstance(created, datetime):
-            self.created = Timestamp.from_datetime(created)
-        elif isinstance(created, Timestamp):
-            self.created = created
+        self.created = Timestamp.parse(created)
+        self.birthday = Birthday.parse(birthday)
+        self.color = Color.parse(color)
 
         self.display_name = display_name
         self.description = description
-        self.color = color
-
-        if isinstance(birthday, str):
-            self.birthday = Timestamp.strptime(birthday, r"%Y-%m-%d")
-        elif isinstance(birthday, datetime):
-            self.birthday = Timestamp.from_datetime(birthday)
-        elif isinstance(birthday, Timestamp):
-            self.birthday = birthday
-
         self.pronouns = pronouns
         self.avatar_url = avatar_url
         self.keep_proxy = keep_proxy
@@ -412,7 +584,7 @@ class Member:
         return self.id
 
     @staticmethod
-    def from_dict(member: Dict[str,Any]):
+    def from_json(member: Dict[str,Any]):
         """Static method to convert a member Dict to a Member object.
 
         Args:
@@ -425,7 +597,7 @@ class Member:
         if not "proxy_tags" in member:
             proxy_tags = ProxyTags()
         else:
-            proxy_tags = ProxyTags.from_dict(member["proxy_tags"])
+            proxy_tags = ProxyTags.from_json(member["proxy_tags"])
         return Member(
             id=member["id"],
             name=member.get("name"),
@@ -454,12 +626,12 @@ class Member:
             "id": self.id,
             "name": self.name,
             "name_privacy": self.name_privacy.value,
-            "created": self.created.to_iso(),
+            "created": self.created.json(),
             "display_name": self.display_name,
             "description": self.description,
             "description_privacy": self.description_privacy.value,
-            "color": self.color,
-            "birthday": self.birthday.to_birthday(),
+            "color": self.color.json(),
+            "birthday": self.birthday.json(),
             "birthday_privacy": self.birthday_privacy.value,
             "pronouns": self.pronouns,
             "pronoun_privacy": self.pronoun_privacy.value,
@@ -489,12 +661,7 @@ class Switch:
         timestamp: Union[Timestamp,str],
         members: Union[Sequence[str],Sequence[Member]]
     ):
-        if isinstance(timestamp, str):
-            self.timestamp = Timestamp.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
-        elif isinstance(timestamp, datetime):
-            self.timestamp = Timestamp.from_datetime(timestamp)
-        elif isinstance(timestamp, Timestamp):
-            self.timestamp = timestamp
+        self.timestamp = Timestamp.parse(timestamp)
 
         if members is None or len(members) == 0:
             self.members = []
@@ -502,7 +669,7 @@ class Switch:
             self.members = [member for member in members]
 
     @staticmethod
-    def from_dict(switch: Dict[str,str]):
+    def from_json(switch: Dict[str,str]):
         """Static method to convert a switch Dict to a Switch object.
 
         Args:
@@ -522,7 +689,7 @@ class Switch:
         """Return Python Dict representing this switch.
         """
         return {
-            "timestamp": self.timestamp.to_iso(),
+            "timestamp": self.timestamp.json(),
             "members": self.members
         }
 
@@ -558,12 +725,6 @@ class Message:
         system: System,
         member: Member
     ):
-        if isinstance(timestamp, str):
-            self.timestamp = Timestamp.strptime(timestamp, r"%Y-%m-%dT%H:%M:%S.%fZ")
-        elif isinstance(timestamp, datetime):
-            self.timestamp = Timestamp.from_datetime(timestamp)
-        elif isinstance(timestamp, Timestamp):
-            self.timestamp = timestamp
         self.id = int(id)
         self.original = int(original)
         self.sender = int(sender)
@@ -571,8 +732,10 @@ class Message:
         self.system = system
         self.member = member
 
+        self.timestamp = Timestamp.parse(timestamp)
+
     @staticmethod
-    def from_dict(message: Dict[str,Any]):
+    def from_json(message: Dict[str,Any]):
         """Static method to convert a message Dict to a Message object.
 
         Args:
@@ -588,15 +751,15 @@ class Message:
             original=message["original"],
             sender=message["sender"],
             channel=message["channel"],
-            system=System.from_dict(message["system"]),
-            member=Member.from_dict(message["member"])
+            system=System.from_json(message["system"]),
+            member=Member.from_json(message["member"])
         )
 
     def json(self) -> Dict[str,Any]:
         """Return Python Dict representing this Message.
         """
         return {
-            "timestamp": self.timestamp.to_iso(),
+            "timestamp": self.timestamp.json(),
             "id": str(self.id),
             "original": str(self.original),
             "sender": str(self.sender),

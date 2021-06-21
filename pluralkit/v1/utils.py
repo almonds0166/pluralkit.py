@@ -5,10 +5,13 @@ from typing import (
     Tuple, List, Set, Sequence, Dict,
 )
 import datetime
-import aiohttp
-from colour import Color
+from http.client import responses as RESPONSE_CODES
 
-from .models import Member, System, ProxyTags, ProxyTag, Privacy
+import aiohttp
+import colour
+import pytz
+
+from .models import ProxyTag, Privacy
 from .errors import *
 
 MEMBER_ATTRS = (
@@ -30,52 +33,58 @@ MEMBER_ATTRS = (
     "birthday_privacy"
 )
 
-class Utils(object):
-    @staticmethod
-    async def member_value(kwargs, key, value):
-        if not key in MEMBER_ATTRS:
-            raise InvalidKwarg(key)
-        if key == "color":
-            color = Utils.check_color(value)
-            if color is not None:
-                kwargs[key] = color
-        if key == "birthday":
-            if isinstance(value, datetime.date):
-                kwargs[key] = value.strftime("%Y-%m-%d")
-            elif isinstance(value, str):
-                try:
-                    birthday = datetime.datetime.strptime(value,'%Y-%m-%d')
-                except:
-                    birthday = None
-                    raise InvalidDate(value)
-        if key == "keep_proxy":
-            if not isinstance(value, bool):
-                raise ValueError("Keep_proxy must be a boolean value")
-        if key in MEMBER_ATTRS [9:]:
-            if not value in ("public", "private", None, privacy.PUBLIC, privacy.PRIVATE):
-                raise ValueError(f"Must be (None, 'public', 'private', privacy.PUBLIC, privacy.PRIVATE), instead was {value}")
-        if key == "avatar_url":
-                async with aiohttp.ClientSession() as session:
-                        async with session.head(value, ssl=True) as response:
-                                if response.status != 200:
-                                        raise Exception("Invalid URL passed")
-        if key == "proxy_tags":
-            for proxy_tag in value:
-                if not isinstance(proxy_tag, ProxyTag):
-                    raise ValueError("proxy_tags must be a ProxyTags object or a Sequence of Dictionaries containing only the following keys 'prefix' and 'suffix' and with value types of Str")
-                    break
+async def member_value(kwargs, key, value):
+    """Prepares the kwargs given to Client methods for PluralKit's API, internal use.
+    """
+    if not key in MEMBER_ATTRS:
+        raise InvalidKwarg(key)
+    if key == "color":
+        if value is not None:
+            kwargs[key] = parse_color(value).hex_l[1:]
+    elif key == "birthday":
+        if isinstance(value, datetime.date): # will catch Timestamp and Birthday objects
+            kwargs[key] = value.strftime("%Y-%m-%d")
+        elif isinstance(value, str):
+            try:
+                datetime.datetime.strptime(value, "%Y-%m-%d")
+            except:
+                raise InvalidBirthday(value)
+    elif key == "keep_proxy":
+        if not isinstance(value, bool):
+            raise ValueError(
+                f"Keyword arg `keep_proxy` must be a boolean value; received {type(key)=}."
+            )
+    elif key in MEMBER_ATTRS [9:]:
+        if not value in ("public", "private", None) and not value in Privacy:
+            raise ValueError(
+                f"Keyword arg `{key}` must be in (None, 'public', 'private') or a Privacy; " \
+                f"instead was {value=}."
+            )
+        if value in Privacy:
+            kwargs[key] = value.value # convert Privacy enum to str
+    elif key == "avatar_url":
+        async with aiohttp.ClientSession() as session:
+            async with session.head(value, ssl=True) as response:
+                code = response.status
+                if code != 200:
+                    raise ValueError(
+                        f"Invalid URL passed. Received {code} {RESPONSE_CODES[code]}."
+                    )
+    elif key == "proxy_tags":
+        proxy_tags = []
+        for proxy_tag in value:
+            if isinstance(proxy_tag, ProxyTag):
+                proxy_tags.append(proxy_tag.json()) # convert to dict
+            elif isinstance(proxy_tag, dict):
+                proxy_tags.append(proxy_tag)
             else:
-                kwargs[key] = value.json()
+                raise ValueError(
+                    f"Keyword arg `proxy_tags` must be a ProxyTags object, a sequence of " \
+                    f"ProxyTag objects, or a sequence of dict containing the keys 'prefix' " \
+                    f"and 'suffix'."
+                )
+        kwargs[key] = proxy_tags
 
-        return kwargs
+    return kwargs
 
-    @staticmethod
-    def check_color(color):
-        if color is None: return None
-        if isinstance(color, str):
-            color = Color(color.replace(" ", ""))
-        elif not isinstance(color, Color):
-            raise InvalidColor(color)
 
-        return color.hex_l[1:]
-    

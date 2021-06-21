@@ -6,5 +6,9 @@ from .v1.models import (
     ProxyTag,
     ProxyTags,
     Switch,
-    Privacy
+    Privacy,
+    Timestamp,
+    Color,
+    Birthday,
+    Timezone
 )

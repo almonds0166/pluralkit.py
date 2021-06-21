@@ -12,7 +12,7 @@ import datetime
 
 from .models import System, Member, Switch
 from .errors import *
-from .utils import Utils as U
+from .utils import *
 
 class Client:
     """Represents a client that interacts with the PluralKit API.
@@ -98,7 +98,7 @@ class Client:
 
                 resp = await response.json()
 
-                system = System.from_dict(resp)
+                system = System.from_json(resp)
 
                 if url.endswith("/s"):
                     # remember self ID for the future
@@ -150,7 +150,7 @@ class Client:
                 resp = await response.json()
 
                 for item in resp:
-                    member = Member.from_dict(item)
+                    member = Member.from_json(item)
 
                     yield member
 
@@ -211,7 +211,7 @@ class Client:
             raise AuthorizationError()
         
         for key, value in kwargs.items():
-            kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
+            kwargs = await member_value(kwargs=kwargs, key=key, value=value)
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
         async with aiohttp.ClientSession(headers=self.content_headers) as session:
@@ -220,7 +220,7 @@ class Client:
                     raise AuthorizationError
                 elif response.status == 200:
                     item = await response.json()
-                    return Member.from_dict(item)
+                    return Member.from_json(item)
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
     
@@ -241,7 +241,7 @@ class Client:
                     raise AuthorizationError()
                 elif response.status == 200:
                     item = await response.json()
-                    return Member.from_dict(item)
+                    return Member.from_json(item)
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
 
@@ -294,7 +294,7 @@ class Client:
         for key, value in kwargs.items():
             if key == "name":
                 self._name = value
-            kwargs = await U.member_value(kwargs=kwargs, key=key, value=value)
+            kwargs = await member_value(kwargs=kwargs, key=key, value=value)
         if self._name is None:
             raise Exception("Must have field 'name'")
 
@@ -305,7 +305,7 @@ class Client:
                     raise AuthorizationError
                 elif response.status == 200:
                     item = await response.json()
-                    return Member.from_dict(item)
+                    return Member.from_json(item)
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
 
@@ -342,7 +342,7 @@ class Client:
                 resp = await response.json()
 
                 for item in resp:
-                    switch = Switch.from_dict(item)
+                    switch = Switch.from_json(item)
                     yield switch
 
     async def new_switch(self, members: Sequence[str]):
