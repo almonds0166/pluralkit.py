@@ -10,7 +10,7 @@ import aiohttp
 import json
 import datetime
 
-from .models import System, Member, Switch
+from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
 from .utils import *
 
@@ -51,7 +51,7 @@ class Client:
             self._id = system.id
     
     @staticmethod
-    def _get_url(self, system):
+    def _get_system_url(self, system):
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
@@ -80,7 +80,7 @@ class Client:
         Returns:
             System: The retrieved system.
         """
-        url = Client._get_url(self, system)
+        url = Client._get_system_url(self, system)
 
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
@@ -105,6 +105,34 @@ class Client:
                     self._id = system.id
 
                 return system
+
+    async def get_fronters(self, system: str=None):
+        """Todo.
+        """
+        
+        if system is None: 
+            await self._check_self_id()
+            url = f"{self.SERVER}/s/{self.id}/fronters"
+        elif isinstance(system, str):
+            url = f"{self.SERVER}/s/{system}/fronters"
+        elif isinstance(system, System):
+            url = f"{self.SERVER}/s/{system.id}/fronters"
+        
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
+            async with session.get(url, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError()
+                elif response.status == 403:
+                    raise AccessForbidden()
+                if response.status != 200: # catch-all
+                    raise PluralKitException()
+                else:
+                    resp = await response.json()
+                    member_list = []
+                    for fronter in resp['members']:
+                        member_list.append(Member.from_json(fronter))
+                    timestamp = Timestamp.from_json(resp['timestamp'])
+                    return (timestamp, member_list)
 
     async def get_members(self, system: Union[System,str,int,None]=None):
         """Retrieve list of a system's members.
@@ -153,83 +181,6 @@ class Client:
                     member = Member.from_json(item)
 
                     yield member
-
-    async def edit_member(self, member_id: str, **kwargs) -> Member:
-        """Edits a member of one's system.
-
-        Note:
-            The system's `authorization token`_ must be set in order to use :meth:`edit_member`.
-
-        Args:
-            member_id: The ID of the member to be edited.
-            **kwargs: Any number of keyworded patchable values from `PluralKit's member model`_.
-        
-        Keyword Args:
-            name (str): New name of the member.
-            display_name (Optional[str]): New display name of the member. If ``None`` is passed,
-                this field is cleared.
-            description (Optional[str]): New description of the member. If ``None`` is passed, this
-                field is cleared.
-            pronouns (Optional[str]): New pronouns of the member. If ``None`` is passed, this field
-                is cleared.
-            color (Union[Color,str,None]): New color of the member. If a string, must be formatted
-                as a 6-character hex string (e.g. ``"ff7000"``), sans the # symbol. If ``None`` is
-                passed, this field is cleared.
-            avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this
-                field is cleared.
-            birthday (Union[Birthday,str]): New birthdate of the member. If a string, must be
-                formatted as ``YYYY-MM-DD``, in which case, a year of ``0001`` or ``0004``
-                represents a hidden year. If ``None`` is passed, this field is cleared.
-            proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
-                tags of the member. May be a `~v1.models.ProxyTags` object, a sequence of
-                `~v1.models.ProxyTag` objects, or a sequence of Python dictionaries with the
-                keys "prefix" and "suffix".
-            keep_proxy (bool): New truth value for whether to display the member's proxy tags in
-                the proxied message.
-            visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
-                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
-                ``None`` is passed, this field is reset to public.
-            name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
-                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
-                ``None`` is passed, this field is reset to public.
-            description_privacy (Union[Privacy,str,None]): New description privacy for the member.
-                Must be either :attr:`~v1.models.Privacy.PUBLIC` or
-                :attr:`~v1.models.Privacy.PRIVATE`. If ``None`` is passed, this field is reset to
-                public.
-            avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
-                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
-                ``None`` is passed, this field is reset to public.
-            pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
-                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
-                ``None`` is passed, this field is reset to public.
-            metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
-                count, etc.) privacy for the member. Must be either
-                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
-                ``None`` is passed, this field is reset to public.
-
-        Returns:
-            Member: The updated member.
-
-        .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
-        .. _`authorization token`: https://pluralkit.me/api/#authentication
-        """
-
-        if self.token is None:
-            raise AuthorizationError()
-        
-        for key, value in kwargs.items():
-            kwargs = await member_value(kwargs=kwargs, key=key, value=value)
-
-        json_payload = json.dumps(kwargs, ensure_ascii=False)
-        async with aiohttp.ClientSession(headers=self.content_headers) as session:
-            async with session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError
-                elif response.status == 200:
-                    item = await response.json()
-                    return Member.from_json(item)
-                else:
-                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
     
     async def get_member(self, member_id: str) -> Member:
         """Gets a system member.
@@ -327,6 +278,100 @@ class Client:
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
 
+    async def edit_member(self, member_id: str, **kwargs) -> Member:
+        """Edits a member of one's system.
+
+        Note:
+            The system's `authorization token`_ must be set in order to use :meth:`edit_member`.
+
+        Args:
+            member_id: The ID of the member to be edited.
+            **kwargs: Any number of keyworded patchable values from `PluralKit's member model`_.
+        
+        Keyword Args:
+            name (str): New name of the member.
+            display_name (Optional[str]): New display name of the member. If ``None`` is passed,
+                this field is cleared.
+            description (Optional[str]): New description of the member. If ``None`` is passed, this
+                field is cleared.
+            pronouns (Optional[str]): New pronouns of the member. If ``None`` is passed, this field
+                is cleared.
+            color (Union[Color,str,None]): New color of the member. If a string, must be formatted
+                as a 6-character hex string (e.g. ``"ff7000"``), sans the # symbol. If ``None`` is
+                passed, this field is cleared.
+            avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this
+                field is cleared.
+            birthday (Union[Birthday,str]): New birthdate of the member. If a string, must be
+                formatted as ``YYYY-MM-DD``, in which case, a year of ``0001`` or ``0004``
+                represents a hidden year. If ``None`` is passed, this field is cleared.
+            proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
+                tags of the member. May be a `~v1.models.ProxyTags` object, a sequence of
+                `~v1.models.ProxyTag` objects, or a sequence of Python dictionaries with the
+                keys "prefix" and "suffix".
+            keep_proxy (bool): New truth value for whether to display the member's proxy tags in
+                the proxied message.
+            visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
+            name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
+            description_privacy (Union[Privacy,str,None]): New description privacy for the member.
+                Must be either :attr:`~v1.models.Privacy.PUBLIC` or
+                :attr:`~v1.models.Privacy.PRIVATE`. If ``None`` is passed, this field is reset to
+                public.
+            avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
+            pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
+            metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
+                count, etc.) privacy for the member. Must be either
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
+
+        Returns:
+            Member: The updated member.
+
+        .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
+        .. _`authorization token`: https://pluralkit.me/api/#authentication
+        """
+
+        if self.token is None:
+            raise AuthorizationError()
+        
+        for key, value in kwargs.items():
+            kwargs = await member_value(kwargs=kwargs, key=key, value=value)
+
+        json_payload = json.dumps(kwargs, ensure_ascii=False)
+        async with aiohttp.ClientSession(headers=self.content_headers) as session:
+            async with session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError
+                elif response.status == 200:
+                    item = await response.json()
+                    return Member.from_json(item)
+                else:
+                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+        
+    async def delete_member(self, member_id: str):
+        """Todo.
+        """
+
+        url = f"{self.SERVER}/m/{member_id}"
+
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
+            async with session.delete(url, ssl=True) as response:
+                if response.status == 401:
+                    if response.status == 401:
+                        raise AuthorizationError()
+                    elif response.status == 403:
+                        raise AccessForbidden()
+
+                    if response.status != 204: # catch-all
+                        raise PluralKitException()
+
     async def get_switches(self, system=None):
         """Todo.
         """
@@ -340,7 +385,7 @@ class Client:
             # system ID
             system_url = f"/s/{system}"
 
-        url = f"https://api.pluralkit.me/v1{system_url}/switches"
+        url = f"{self.SERVER}{system_url}/switches"
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
             async with session.get(url, ssl=True) as response:
@@ -367,7 +412,10 @@ class Client:
         """Todo.
         """
 
-        url = "https://api.pluralkit.me/v1/s/switches"
+        if self.token is None:
+            raise AuthorizationError()
+        
+        url = f"{self.SERVER}/s/switches"
         payload = json.dumps({"members": members}, ensure_ascii=False)
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
@@ -379,5 +427,25 @@ class Client:
                     
                 if response.status != 204: # catch-all
                     raise PluralKitException()
+    
+    async def get_message(self, message: Union[str, Message]):
+        """Todo.
+        """
+        
+        if isinstance(message, (str, int)):
+            url = f"{self.SERVER}/msg/{message}"
+        elif isinstance(message, Message):
+            url = f"{self.SERVER}/msg/{message.id}"
 
-
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
+            async with session.get(url, ssl=True) as response:
+                if response.status == 401:
+                    raise AuthorizationError()
+                elif response.status == 403:
+                    raise AccessForbidden()
+                if response.status != 200: # catch-all
+                    raise PluralKitException()
+                else:
+                    resp = await response.json()
+                    
+                    return Message.from_json(resp)
