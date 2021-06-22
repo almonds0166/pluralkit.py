@@ -15,11 +15,13 @@
    sphinx-build -M clean ./ _build/
    ```
 
-4. Create reST files for all detected packages.
+<!--4. Create reST files for all detected packages.
 
    ```bash
-   sphinx-apidoc -f -o ./source/ ../pluralkit/
-   ```
+   sphinx-apidoc -f -o ./apidocs/ ../pluralkit/
+   ```-->
+
+4. Touch up the reST files under `source/`.
 
 5. Make the docs.
 
