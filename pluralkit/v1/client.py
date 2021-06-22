@@ -10,7 +10,7 @@ import aiohttp
 import json
 import datetime
 
-from .models import Message, System, Member, Switch
+from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
 from .utils import *
 
@@ -128,10 +128,11 @@ class Client:
                     raise PluralKitException()
                 else:
                     resp = await response.json()
-                    for fronter in resp:
-                        fronter = Member.from_json(fronter)
-
-                        yield fronter
+                    member_list = []
+                    for fronter in resp['members']:
+                        member_list.append(Member.from_json(fronter))
+                    timestamp = Timestamp.from_json(resp['timestamp'])
+                    return (timestamp, member_list)
 
     async def get_members(self, system: Union[System,str,int,None]=None):
         """Retrieve list of a system's members.
@@ -180,16 +181,6 @@ class Client:
                     member = Member.from_json(item)
 
                     yield member
-
-    async def edit_system(self, **kwargs):
-        """Edits the system corresponding to the token used at initialization.
-
-        Note:
-            The system's `authorization token`_ must be set in order to use :meth:`edit_system`.
-        """
-
-        for item in kwargs.items():
-            pass
     
     async def get_member(self, member_id: str) -> Member:
         """Gets a system member.
