@@ -13,9 +13,9 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath(".."))
+from pluralkit import __version__
 sys.path.append("../pluralkit/v1")
 sys.path.append("../pluralkit")
-
 
 # -- Project information -----------------------------------------------------
 
@@ -24,7 +24,7 @@ copyright = "2021, Madison Landry, Alyx Warner"
 author = "Madison Landry, Alyx Warner"
 
 # The full version
-release = "0.0.2"
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -35,7 +35,7 @@ release = "0.0.2"
 extensions = [
    "sphinx.ext.napoleon",
    "sphinx.ext.autodoc",
-   "sphinxjp.themes.basicstrap",
+   #"sphinxjp.themes.basicstrap",
    "sphinx_autodoc_typehints"
 ]
 
@@ -54,7 +54,23 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # a list of builtin themes.
 #
 #html_theme = "alabaster"
-html_theme = "basicstrap"
+#html_theme = "basicstrap" # https://pythonhosted.org/sphinxjp.themes.basicstrap/
+html_theme = "sphinx_book_theme" # https://sphinx-themes.org/sample-sites/sphinx-book-theme/
+
+html_theme_options = {
+   "home_page_in_toc": True,
+   "toc_title": "Jump to",
+   "repository_url": "https://github.com/almonds0166/pk.py",
+   "path_to_docs": "docs/",
+   "use_repository_button": True,
+   #"use_edit_page_button": True,
+   #"extra_navbar": "<p>Hello!</p>", # extra footer on left sidebar
+}
+
+html_title = f"{project} v{release} docs"
+#html_logo = "path/to/logo.png"
+#html_favicon = "path/to/favicon.ico"
+show_navbar_depth = 3
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
