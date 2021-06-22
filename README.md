@@ -35,4 +35,5 @@ The client can be used without one's [PluralKit authorization token](https://plu
 * Tidy up error handling
 * What to do with Client.get_url?
 * Documentation for get_switches, new_switch
+* Test timezone mechanics
 * Prepare for API v2

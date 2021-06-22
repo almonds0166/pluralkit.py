@@ -19,11 +19,11 @@ class Client:
 
     Args:
         token: The PluralKit authorization token, received by the ``pk;token`` command.
-        user_agent: The UserAgent header to use with the API.
+        user_agent: The User-Agent header to use with the API.
 
     Attributes:
-        token: The client's PluralKit authorization token.
-        user_agent: The UserAgent header used with the API.
+        token (Optional[str]): The client's PluralKit authorization token.
+        user_agent (Optional[str]): The User-Agent header used with the API.
     """
 
     SERVER = "https://api.pluralkit.me/v1"
@@ -34,7 +34,7 @@ class Client:
         if token:
             self.headers["Authorization"] = token
         if user_agent:
-            self.headers["UserAgent"] = user_agent
+            self.headers["User-Agent"] = user_agent
         self.content_headers = self.headers.copy()
         self.content_headers['Content-Type'] = "application/json"
         self._id = None
@@ -51,7 +51,7 @@ class Client:
             self._id = system.id
     
     @staticmethod
-    def get_url(self, system):
+    def _get_url(self, system):
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
@@ -74,13 +74,13 @@ class Client:
         """Return a system by its system ID or Discord user ID.
 
         Args:
-            system: The system ID, Discord user ID, or System object of the system. If None, returns
-                the system of the client.
+            system: The system ID (as `str`), Discord user ID (as `int`), or `~v1.models.System`
+                object of the system. If ``None``, returns the system of the client.
 
         Returns:
-            system (System): The desired system.
+            System: The retrieved system.
         """
-        url = Client.get_url(self, system)
+        url = Client._get_url(self, system)
 
 
         async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
@@ -110,11 +110,11 @@ class Client:
         """Retrieve list of a system's members.
 
         Args:
-            system: The system ID, Discord user ID, or System object of the system. If None, returns
-                a list of the client system's members.
+            system: The system ID, Discord user ID, or System object of the system. If ``None``,
+                returns a list of the client system's members.
 
         Yields:
-            member (Member): The next system member.
+            Member: The next system member.
         """
 
         if system is None:
@@ -155,7 +155,10 @@ class Client:
                     yield member
 
     async def edit_member(self, member_id: str, **kwargs) -> Member:
-        """Edits a member of the system with the authorization token passed at initialization.
+        """Edits a member of one's system.
+
+        Note:
+            The system's `authorization token`_ must be set in order to use :meth:`edit_member`.
 
         Args:
             member_id: The ID of the member to be edited.
@@ -169,42 +172,46 @@ class Client:
                 field is cleared.
             pronouns (Optional[str]): New pronouns of the member. If ``None`` is passed, this field
                 is cleared.
-            color (Union[str,None]): New color of the member. If a string, must be formatted
-                as a 6-character hex string (e.g. "ff7000"), sans the # symbol. If ``None`` is
+            color (Union[Color,str,None]): New color of the member. If a string, must be formatted
+                as a 6-character hex string (e.g. ``"ff7000"``), sans the # symbol. If ``None`` is
                 passed, this field is cleared.
             avatar_url (Optional[str]): New avatar URL for the member. If ``None`` is passed, this
                 field is cleared.
-            birthday (Union[Timestamp,str]): New birthdate of the member. If a string, must be
-                formatted as ``YYYY-MM-DD``. A year of ``0001`` or ``0004`` represents a hidden
-                year. If ``None`` is passed, this field is cleared.
+            birthday (Union[Birthday,str]): New birthdate of the member. If a string, must be
+                formatted as ``YYYY-MM-DD``, in which case, a year of ``0001`` or ``0004``
+                represents a hidden year. If ``None`` is passed, this field is cleared.
             proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
-                tags of the member. May be a ProxyTags object, a sequence of ProxyTag objects, or a
-                sequence of Python dictionaries with the keys "prefix" and "suffix".
+                tags of the member. May be a `~v1.models.ProxyTags` object, a sequence of
+                `~v1.models.ProxyTag` objects, or a sequence of Python dictionaries with the
+                keys "prefix" and "suffix".
             keep_proxy (bool): New truth value for whether to display the member's proxy tags in
                 the proxied message.
             visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
-                reset to public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
             name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
-                Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is reset to
-                public.
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
             description_privacy (Union[Privacy,str,None]): New description privacy for the member.
-                Must be either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field
-                is reset to public.
+                Must be either :attr:`~v1.models.Privacy.PUBLIC` or
+                :attr:`~v1.models.Privacy.PRIVATE`. If ``None`` is passed, this field is reset to
+                public.
             avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
-                reset to public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
             pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. If ``None`` is passed, this field is
-                reset to public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
             metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
-                count, etc.) privacy for the member. Must be either Privacy.PUBLIC or
-                Privacy.PRIVATE. If ``None`` is passed, this field is reset to public.
+                count, etc.) privacy for the member. Must be either
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. If
+                ``None`` is passed, this field is reset to public.
 
         Returns:
-            member (Member): Modified member object.
+            Member: The updated member.
 
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
+        .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
 
         if self.token is None:
@@ -225,13 +232,13 @@ class Client:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
     
     async def get_member(self, member_id: str) -> Member:
-        """Gets a system member
+        """Gets a system member.
 
         Args:
             member_id: The ID of the member to be fetched.
-        
+
         Returns:
-            member (Member): Member object.
+            Member: The member with the given ID.
 
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         """
@@ -245,8 +252,11 @@ class Client:
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
 
-    async def new_member(self, **kwargs):
-        """Creates a new member of the system with the authorization token passed at initialization.
+    async def new_member(self, **kwargs) -> Member:
+        """Creates a new member of one's system.
+
+        Note:
+            The system's `authorization token`_ must be set in order to use :meth:`new_member`.
 
         Args:
             name: Name of the new member
@@ -256,36 +266,44 @@ class Client:
             display_name (Optional[str]): New display name of the member. Default is None.
             description (Optional[str]): New description of the member. Default is None.
             pronouns (Optional[str]): New pronouns of the member. Default is None.
-            color (Union[str,None]): New color of the member. If a string, must be formatted
-                as a 6-character hex string (e.g. "ff7000"), sans the # symbol. Default is None.
+            color (Union[Color,str,None]): New color of the member. If a string, must be formatted
+                as a 6-character hex string (e.g. ``"ff7000"``), sans the # symbol. Default is
+                ``None``.
             avatar_url (Optional[str]): New avatar URL for the member. Default is None.
             birthday (Union[Timestamp,str]): New birthdate of the member. If a string, must be
-                formatted as ``YYYY-MM-DD``. A year of ``0001`` or ``0004`` represents a hidden
-                year. Default is None.
+                formatted as ``YYYY-MM-DD``, in which case, year of ``0001`` or ``0004`` represents
+                a hidden year. Default is None.
             proxy_tags (Union[ProxyTags,Sequence[ProxyTag],Sequence[Dict[str,str]]]): New proxy
-                tags of the member. May be a ProxyTags object, a sequence of ProxyTag objects, or a
-                sequence of Python dictionaries with the keys "prefix" and "suffix". Default is an
-                empty set of proxy tags.
+                tags of the member. May be a `~v1.models.ProxyTags` object, a sequence of
+                `~v1.models.ProxyTag` objects, or a sequence of Python dictionaries with the
+                keys "prefix" and "suffix". Default is an empty set of proxy tags.
             keep_proxy (bool): New truth value for whether to display the member's proxy tags in
                 the proxied message. Default is ``False``.
             visibility (Union[Privacy,str,None]): New visibility privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`.
+                Default is public.
             name_privacy (Union[Privacy,str,None]): New name privacy for the member. Must be either
-                Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. Default is
+                public.
             description_privacy (Union[Privacy,str,None]): New description privacy for the member.
-                Must be either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+                Must be either :attr:`~v1.models.Privacy.PUBLIC` or
+                :attr:`~v1.models.Privacy.PRIVATE`. Default is public.
             avatar_privacy (Union[Privacy,str,None]): New avatar privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`.
+                Default is public.
             pronoun_privacy (Union[Privacy,str]): New pronouns privacy for the member. Must be
-                either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+                either :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`.
+                Default is public.
             metadata_privacy (Union[Privacy,str]): New metadata (eg. creation timestamp, message
-                count, etc.) privacy for the member. Must be either Privacy.PUBLIC or
-                Privacy.PRIVATE. Default is public.
+                count, etc.) privacy for the member. Must be either
+                :attr:`~v1.models.Privacy.PUBLIC` or :attr:`~v1.models.Privacy.PRIVATE`. Default is
+                public.
 
         Returns:
-            member (Member): New member object.
+            Member: The new member.
 
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
+        .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
         #Finish editing this so it makes sense in the context it's in
         if self.token is None:

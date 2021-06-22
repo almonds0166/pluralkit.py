@@ -13,7 +13,11 @@ import colour
 from .errors import *
 
 class Privacy(Enum):
-    """Represents the two privacies accepted by PluralKit.
+    """Represents the privacies accepted by PluralKit.
+
+    Note:
+        `Privacy.NULL` is the same as `Privacy.PUBLIC` in effect, and is mainly implemented for
+        legacy reasons and internal convenience.
     """
     PUBLIC = "public"
     PRIVATE = "private"
@@ -22,8 +26,10 @@ class Privacy(Enum):
 class Color(colour.Color):
     """Represents a color.
 
-    This class is initialized in the same way that a colour.Color object is. It may also take a
-    colour.Color object directly.
+    This class is initialized in the same way that a `colour.Color`_ object is. It may also take a
+    `colour.Color`_ object directly.
+
+    .. _`colour.Color`: https://pypi.org/project/colour/#instantiation
     """
     def __init__(self, *args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], colour.Color):
@@ -33,19 +39,22 @@ class Color(colour.Color):
 
     @staticmethod
     def parse(c):
-        """Takes in a colour.Color or str and converts to colour.Color as needed.
+        """Takes in a `Color`, `colour.Color`_, or str and converts to `Color` as
+        needed.
 
         Args:
-            color (Union[Color,colour.Color,str,None]): The color, represented as a colour.Color or
-                str. If a string, may either be in the format as expected by PluralKit's API
-                internally (e.g. ``ff00ff``) or a color string that can be taken by a Color object
-                (e.g. ``white``).
+            color (Union[Color,colour.Color,str,None]): The color, represented as a `Color`,
+                `colour.Color`_ or `str`. If a string, may either be in the format as expected by
+                PluralKit's API internally (e.g. ``00ffff``) or a color string that can be taken by
+                a Color object (e.g. ``cyan``).
 
         Returns:
-            color (Optional[Color]): The Color object, or None if input is None.
+            Optional[Color]: The `Color` object, or ``None`` if input is None.
 
         Raises:
-            TypeError: If the given argument is neither a Color, colour.Color, or str.
+            TypeError: If the given argument is neither a `Color`, `colour.Color`_, or `str`.
+
+        .. _`colour.Color`: https://pypi.org/project/colour/#instantiation
         """
         if c is None: return None
 
@@ -64,27 +73,33 @@ class Color(colour.Color):
 
     @staticmethod
     def from_json(color: str):
-        """Takes in a string (as returned by the API) and returns the Color.
+        """Takes in a string (as returned by the API) and returns the `Color`.
         """
         return Color.__new__(Color, f"#{color}")
 
     def json(self):
-        """Returns the hex of the Color sans the "#" symbol.
+        """Returns the hex of the `Color` sans the ``#`` symbol.
 
-        Example:
-            ``Color("white").json()`` would return `"ffffff"`.
+        Example: ``Color("magenta").json()`` would return ``"ff00ff"``.
         """
         return self.hex_l[1:]
 
 class Timezone:
     """Represents a tzdb time zone.
 
-    This class is initialized in the same way that a tzinfo object is. It may also
-    take a tzinfo object directly.
+    This class is initialized in the same way that `pytz.timezone`_ initializes `tzinfo` objects.
+    It may also take a `tzinfo` object directly.
+
+    Hint:
+        `Here is a link to a list of tz database time zones`_
 
     Args:
-        tz (Union[str,tzinfo]): The timezone, either as a string or as a tzinfo (e.g. from
-            pytz.timezone).
+        tz (Union[str,tzinfo]): The timezone, either as a string or as a `tzinfo` (e.g. from
+            `pytz.timezone`_).
+
+    .. _`pytz.timezone`: http://pytz.sourceforge.net/
+    .. _`Here is a link to a list of tz database time zones`:
+        https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     """
     def __init__(self, *args, **kwargs):
         if len(args) != 1 or len(kwargs) != 0:
@@ -106,14 +121,14 @@ class Timezone:
 
     @staticmethod
     def parse(tz):
-        """Takes in a Timezone, tzinfo, or str and converts to Timezone as needed.
+        """Takes in a `Timezone`, `tzinfo`, or `str` and converts to `Timezone` as needed.
 
         Args:
             tz (Union[Timezone,tzinfo,str]): The timezone, represented as a
-                Timezone, tzinfo, or str.
+                `Timezone`, `tzinfo`, or `str`.
 
         Raises:
-            TypeError: If given argument is neither a Timezone, tzinfo, nor str.
+            TypeError: If given argument is neither a `Timezone`, `tzinfo`, nor `str`.
         """
         if isinstance(tz, Timezone):
             return tz
@@ -129,6 +144,12 @@ class Timezone:
     @staticmethod
     def from_json(tz: str):
         """Takes in a string (as returned by the API) and returns the Timezone.
+
+        Args:
+            tz: The time zone as stored in the PluralKit API internally.
+
+        Returns:
+            Timezone: The corresponding `Timezone` object.
         """
         return Timezone(tz)
 
@@ -140,8 +161,10 @@ class Timezone:
 class Timestamp(datetime):
     """Represents a PluralKit UTC timestamp.
 
-    This class is initialized in the same way that a datetime object is. It may also take a
-    datetime object directly.
+    This class is initialized in the same way that a `datetime`_ object is. It may also take a
+    `datetime`_ object directly.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     def __new__(cls, *args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], datetime):
@@ -160,17 +183,19 @@ class Timestamp(datetime):
 
     @staticmethod
     def parse(ts):
-        """Takes in a Timestamp, datetime, or str, converts to Timestamp as needed.
+        """Takes in a `Timestamp`, `datetime`_, or `str`, converts to `Timestamp` as needed.
 
         Args:
-            ts (Union[Timestamp,datetime,str]): The timestamp, represented as a Timestamp,
-                datetime, or str.
+            ts (Union[Timestamp,datetime,str]): The timestamp, represented as a `Timestamp`,
+                `datetime`_, or `str`.
 
         Returns:
-            timestamp (Timestamp): The Timestamp object.
+            Timestamp: The `Timestamp` object.
 
         Raises:
-            TypeError: If given argument is neither a Timestamp, datetime, or str.
+            TypeError: If given argument is neither a `Timestamp`, `datetime`_, or `str`.
+
+        .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
         """
         if isinstance(ts, Timestamp):
             return ts
@@ -188,7 +213,14 @@ class Timestamp(datetime):
 
     @staticmethod
     def from_json(bd: str):
-        """Takes in a string (as returned by the API) and returns the Timestamp.
+        """Takes in a string (as returned by the API) and returns the corresponding `Timestamp`.
+
+        Args:
+            bd: The ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` formatted
+                string representing a PluralKit API timestamp.
+
+        Returns:
+            Timestamp: The corresponding `Timestamp` object.
         """
         return Timestamp.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -201,7 +233,15 @@ class Birthday(Timestamp):
     """Represents a birthday.
     """
     @property
-    def hidden_year(self):
+    def hidden_year(self) -> bool:
+        """Whether this birthday's year is hidden.
+
+        If set to ``False``, sets the birthday's year to ``0001``, `which internally represents a
+        hidden year in PluralKit's API`_.
+
+        .. _`which internally represents a hidden year in PluralKit's API`:
+            https://pluralkit.me/api/#member-model
+        """
         return self.year in (1, 4)
 
     @hidden_year.setter
@@ -210,17 +250,19 @@ class Birthday(Timestamp):
 
     @staticmethod
     def parse(bd):
-        """Takes in a Birthday, datetime, or str, converts to Birthday as needed.
+        """Takes in a `Birthday`, `datetime`_, or str, converts to `Birthday` as needed.
 
         Args:
-            bd (Union[Birthday,datetime,str,None]): The birthday, represented as a Birthday,
-            datetime, or str.
+            bd (Union[Birthday,datetime,str,None]): The birthday, represented as a `Birthday`,
+                `datetime`_, or str.
 
         Returns:
-            birthday (Optional[Birthday]): The Birthday object, or None if input is None.
+            Optional[Birthday]: The `Birthday` object, or ``None`` if input is ``None``.
 
         Raises:
-            TypeError: If given argument is neither a Birthday, datetime, or str.
+            TypeError: If given argument is neither a `Birthday`, `datetime`_, or str.
+
+        .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
         """
         if bd is None: return None
 
@@ -240,12 +282,18 @@ class Birthday(Timestamp):
 
     @staticmethod
     def from_json(bd: str):
-        """Takes in a string (as returned by the API) and returns the Birthday.
+        """Takes in a string (as returned by the API) and returns the `Birthday`.
+
+        Args:
+            bd: The ``YYYY-MM-DD`` formatted string representing the birthdate.
+
+        Returns:
+            Birthday: The corresponding birthday.
         """
         return Birthday.strptime(bd, r"%Y-%m-%d")
 
     def json(self) -> str:
-        """Returns the YYYY-MM-DD formatted birthdate.
+        """Returns the ``YYYY-MM-DD`` formatted birthdate.
         """
         return self.strftime(r"%Y-%m-%d")
 
@@ -256,12 +304,12 @@ class ProxyTag:
         prefix: Prefix that will enclose proxied messages.
         suffix: Suffix that will enclose proxied messages.
 
-    Note:
+    Important:
         At least one of the ``suffix`` or ``prefix`` arguments must be passed.
     
     Attributes:
-        prefix: Prefix that will enclose proxied messages.
-        suffix: Suffix that will enclose proxied messages.
+        prefix (Optional[str]): Prefix that will enclose proxied messages.
+        suffix (Optional[str]): Suffix that will enclose proxied messages.
     """
     def __init__(self, *,
         prefix: Optional[str]=None,
@@ -274,14 +322,14 @@ class ProxyTag:
 
     @staticmethod
     def from_json(proxy_tag: Dict[str,str]):
-        """Static method to convert a proxy tag Dict to a ProxyTag.
+        """Static method to convert a proxy tag `dict` to a `ProxyTag`.
 
         Args:
             proxy_tag: Dictionary representing a proxy tag. Must have at least one of ``prefix`` or
                 ``suffix`` as keys.
 
         Returns:
-            proxy_tag (ProxyTag): The corresponding ProxyTag object.
+            ProxyTag: The corresponding `ProxyTag` object.
         """
         return ProxyTag(
             prefix=proxy_tag.get("prefix"),
@@ -300,13 +348,14 @@ class ProxyTag:
         """Determine if a given message would be proxied under this proxy tag.
         
         Args:
-            message: Message to parse. Should already be stripped of outer whitespace.
+            message: Message to parse.
         """
+        message = message.strip()
         return (True if not self.prefix else message.startswith(self.prefix)) \
             and (True if not self.suffix else message.endswith(self.suffix))
 
     def json(self) -> Dict[str,str]:
-        """Return the JSON object representing this proxy tag as a Python Dict.
+        """Return the JSON object representing this proxy tag as a Python `dict`.
         """
         return {
             "prefix": self.prefix,
@@ -317,10 +366,10 @@ class ProxyTags:
     """Represents a set of PluralKit proxy tags.
 
     Hint:
-        ProxyTags objects can be iterated and indexed to yield its underlying ProxyTag objects.    
+        ProxyTags objects can be iterated or indexed to yield its underlying `ProxyTag` objects.    
     
     Args:
-        proxy_tags: A sequence of ProxyTag objects.
+        proxy_tags: A sequence of `ProxyTag` objects.
     """
     def __init__(self, proxy_tags: Optional[Sequence[ProxyTag]]=None):
         if proxy_tags is None: proxy_tags = tuple()
@@ -338,13 +387,13 @@ class ProxyTags:
 
     @staticmethod
     def from_json(proxy_tags: Sequence[Dict[str,str]]):
-        """Static method to convert a list of proxy tags to a ProxyTags object.
+        """Static method to convert a list of proxy tags `dict`s to a `ProxyTags` object.
 
         Args:
             proxy_tags: Sequence of Python dictionaries, each representing a proxy tag.
 
         Returns:
-            proxy_tags (ProxyTags): The corresponding ProxyTags object.
+            ProxyTags: The corresponding `ProxyTags` object.
         """
         return ProxyTags(ProxyTag.from_json(proxy_tag) for proxy_tag in proxy_tags)
 
@@ -352,12 +401,12 @@ class ProxyTags:
         """Determine if a given message would be proxied under this set of proxy tags.
         
         Args:
-            message: Message to parse. Should already be stripped of outer whitespace.
+            message: Message to parse.
         """
         return any(proxy_tag.match(message) for proxy_tag in self)
 
     def json(self) -> List[Dict[str,str]]:
-        """Return the JSON object representing this proxy tag as a list of Python Dict.
+        """Return the JSON object representing this proxy tag as a list of Python `dict`.
         """
         return [proxy_tag.json() for proxy_tag in self]
 
@@ -367,35 +416,37 @@ class System:
     Args:
         id: The system's five-character lowercase ID.
         created: The system's creation date. May be a string formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format) or a
-            Timestamp object.
-        name: The name of the system. Default None.
-        description: The description of the system. Default None.
-        tag: The system's tag appended to display names. Default None.
-        avatar_url: The system's avatar URL. Default None.
-        tz: The system's tzdb timezone. May be a Timezone, tzinfo, or str. Default
-            is UTC.
-        description_privacy: The system's description privacy, either Privacy.PUBLIC or
-            Privacy.PRIVATE. Default is public.
-        member_list_privacy: The system's member list privacy, either Privacy.PUBLIC or
-            Privacy.PRIVATE. Default is public.
-        front_privacy: The system's fronting privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
-            Default is public.
-        front_history_privacy: The system's fronting history privacy, either Privacy.PUBLIC or
-            Privacy.PRIVATE. Default is public.
+            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
+            `Timestamp`, or a `datetime`_.
+        name: The name of the system. Default ``None``.
+        description: The description of the system. Default ``None``.
+        tag: The system's tag appended to display names. Default ``None``.
+        avatar_url: The system's avatar URL. Default ``None``.
+        tz: The system's tzdb timezone. May be a `Timezone`, `tzinfo`, or `str`. Default is
+            ``"UTC"``.
+        description_privacy: The system's description privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
+        member_list_privacy: The system's member list privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
+        front_privacy: The system's fronting privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
+        front_history_privacy: The system's fronting history privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
 
     Attributes:
         id (str): The system's five-character lowercase ID.
-        name (str): The name of the system.
-        description (str): The description of the system.
-        tag (str): The system's tag appended to display names.
-        avatar_url (str): The system's avatar URL.
+        name (Optional[str]): The name of the system.
+        description (Optional[str]): The description of the system.
+        tag (Optional[str]): The system's tag appended to display names.
+        avatar_url (Optional[str]): The system's avatar URL.
         tz (Timezone): The system's tzdb timezone.
         created (Timestamp): The system's timestamp at creation.
         description_privacy (Privacy): The system's description privacy.
         member_list_privacy (Privacy): The system's member list privacy.
         front_privacy (Privacy): The system's fronting privacy.
         front_history_privacy (Privacy): The system's fronting history privacy.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
 
     def __init__(self, *,
@@ -434,14 +485,14 @@ class System:
 
     @staticmethod
     def from_json(system: Dict[str,Any]):
-        """Static method to convert a system Dict to a System object.
+        """Static method to convert a system `dict` to a `System` object.
 
         Args:
             system: Dictionary representing a system, e.g. one received directly from the API. Must
-            have a value for the ``id`` and ``created`` attributes.
+                have a value for the ``id`` and ``created`` attributes.
 
         Returns:
-            system (System): The corresponding System object.
+            System: The corresponding `System` object.
         """
         return System(
             id=system["id"],
@@ -458,7 +509,7 @@ class System:
         )
 
     def json(self) -> Dict[str,Any]:
-        """Return Python Dict representing this system.
+        """Return Python `dict` representing this system.
         """
         return {
             "id": self.id,
@@ -482,43 +533,43 @@ class Member:
         name: The member's name.
         created: The member's creation date. May be a string formatted as
             ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
-            Timestamp, or a datetime.
-        name_privacy: The member's name privacy, either Privacy.PUBLIC or Privacy.PRIVATE. Default
-            is public.
-        display_name: The member's display name. Default is None.
-        description: The member's description. Default is None.
-        description_privacy: The member's description privacy, either Privacy.PUBLIC or
-            Privacy.PRIVATE. Default is public.
-        color: The member's color. Default is None.
+            `Timestamp`, or a `datetime`_.
+        name_privacy: The member's name privacy, either `~Privacy.PUBLIC` or `~Privacy.PRIVATE`.
+            Default is public.
+        display_name: The member's display name. Default is ``None``.
+        description: The member's description. Default is ``None``.
+        description_privacy: The member's description privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
+        color: The member's color. Default is ``None``.
         birthday: The member's birthdate. May be a string formatted as ``{year}-{month}-{day}``, a
-            Timestamp, or a datetime. Default is None.
-        birthday_privacy: The member's birthdate privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
-            Default is public.
-        pronouns: The member's pronouns. Default is None.
-        pronoun_privacy: The member's pronouns privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
-            Default is public.
+            `Timestamp`, or a `datetime`_. Default is ``None``.
+        birthday_privacy: The member's birthdate privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
+        pronouns: The member's pronouns. Default is ``None``.
+        pronoun_privacy: The member's pronouns privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
         avatar_url: The member's avatar URL.
-        avatar_privacy: The member's avatar privacy, either Privacy.PUBLIC or Privacy.PRIVATE.
-            Default is public.
+        avatar_privacy: The member's avatar privacy, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
         keep_proxy: Whether the member's proxy tags remain in the proxied message (``True``) or not
             (``False``). Default is ``False``.
         metadata_privacy: The member's metadata (eg. creation timestamp, message count, etc.)
-            privacy. Must be either Privacy.PUBLIC or Privacy.PRIVATE. Default is public.
+            privacy. Must be either `~Privacy.PUBLIC` or `~Privacy.PRIVATE`. Default is public.
         proxy_tags: The member's proxy tags. Default is an empty set of proxy tags.
-        visibility: The visibility privacy setting of the member, either Privacy.PUBLIC or
-            Privacy.PRIVATE. Default is public.
+        visibility: The visibility privacy setting of the member, either `~Privacy.PUBLIC` or
+            `~Privacy.PRIVATE`. Default is public.
 
     Attributes:
         id (str): The member's five-letter lowercase ID.
-        name (Optional[str]): The member's name.
+        name (str): The member's name.
         created (Timestamp): The member's creation date.
         name_privacy (Privacy): The member's name privacy.
         display_name (Optional[str]): The member's display name.
         description (Optional[str]): The member's description.
         description_privacy (Privacy): The member's description privacy.
-        color (Optional[str]): The member's color.
-        birthday (Timestamp): The member's birthdate.
-        birthday_privacy (Privacy): The member's birthdate privacy.
+        color (Optional[Color]): The member's color.
+        birthday (Optional[Birthday]): The member's birthdate.
+        birthday_privacy (Privacy): The member's birthday privacy.
         pronouns (Optional[str]): The member's pronouns.
         pronoun_privacy (Privacy): The member's pronouns privacy.
         avatar_url (Optional[str]): The member's avatar URL.
@@ -529,6 +580,8 @@ class Member:
             etc.) privacy.
         proxy_tags (ProxyTags): The member's proxy tags.
         visibility (Privacy): The visibility privacy setting of the member.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
 
     def __init__(self, *,
@@ -585,14 +638,14 @@ class Member:
 
     @staticmethod
     def from_json(member: Dict[str,Any]):
-        """Static method to convert a member Dict to a Member object.
+        """Static method to convert a member `dict` to a `Member` object.
 
         Args:
             member: Dictionary representing a system, e.g. one received directly from the API. Must
             have a value for the ``id`` and ``created`` attributes.
 
         Returns:
-            member (Member): The corresponding Member object.
+            Member: The corresponding `Member` object.
         """
         if not "proxy_tags" in member:
             proxy_tags = ProxyTags()
@@ -620,7 +673,7 @@ class Member:
         )
 
     def json(self) -> Dict[str,Any]:
-        """Return Python Dict representing this member.
+        """Generate the Python `dict` representing this member.
         """
         return {
             "id": self.id,
@@ -647,15 +700,17 @@ class Switch:
     """Represents a switch event.
 
     Args:
-        timestamp: Timestamp of the switch. May be a string for
-            atted as ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601
-            format), a Timestamp, or a datetime.
+        timestamp: Timestamp of the switch. May be a string formatted as
+            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
+            `Timestamp`, or a `datetime`_.
         members: Members involved. May be a list of the five-letter member IDs as strings, or a
-            list of Member models, though cannot be mixed.
+            list of `Member` models, though cannot be mixed.
 
     Attributes:
-        timestamp (str): ISO formatted timestamp of the switch.
+        timestamp (Timestamp): Timestamp of the switch.
         members (Union[Sequence[str],Sequence[Member]]): Members involved.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     def __init__(self, *,
         timestamp: Union[Timestamp,str],
@@ -670,7 +725,7 @@ class Switch:
 
     @staticmethod
     def from_json(switch: Dict[str,str]):
-        """Static method to convert a switch Dict to a Switch object.
+        """Static method to convert a switch `dict` to a `Switch` object.
 
         Args:
             switch: Dictionary representing a switch, e.g. one received directly from the API. Must
@@ -678,7 +733,7 @@ class Switch:
             initializer documentation for what format those are expected to be in.
 
         Returns:
-            switch (Switch): The corresponding Switch object.
+            Switch: The corresponding `Switch` object.
         """
         return Switch(
             timestamp=switch["timestamp"],
@@ -686,7 +741,7 @@ class Switch:
         )
 
     def json(self) -> Dict[str,Any]:
-        """Return Python Dict representing this switch.
+        """Return Python `dict` representing this switch.
         """
         return {
             "timestamp": self.timestamp.json(),
@@ -699,25 +754,28 @@ class Message:
     Args:
         timestamp: Timestamp of the message. May be a string for
             atted as ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601
-            format), a Timestamp, or a datetime.
+            format), a `Timestamp`, or a `datetime`_.
         id: The ID of the Discord message sent by the webhook.
-        original: The ID of the (deleted) Discord message sent by the account.
+        original: The ID of the (presumably deleted) original Discord message sent by the account.
         sender: The user ID of the account that sent the message.
         channel: The ID of the channel the message was sent to.
-        system: The System that proxied the message.
-        member: The Member that proxied the message.
+        system: The system that proxied the message.
+        member: The member that proxied the message.
 
     Attributes:
         timestamp (Timestamp): Timestamp of the message.
         id (int): The ID of the Discord message sent by the webhook.
-        original (int): The ID of the (deleted) Discord message sent by the account.
+        original (int): The ID of the (presumably deleted) original Discord message sent by the
+            account.
         sender (int): The user ID of the account that sent the message.
         channel (int): The ID of the channel the message was sent to.
-        system (System): The System that proxied the message.
-        member (Member): The Member that proxied the message.
+        system (System): The system that proxied the message.
+        member (Member): The member that proxied the message.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     def __init__(self, *,
-        timestamp: Union[Timestamp,str],
+        timestamp: Union[Timestamp,datetime,str],
         id: Union[int,str],
         original: Union[int,str],
         sender: Union[int,str],
@@ -736,14 +794,14 @@ class Message:
 
     @staticmethod
     def from_json(message: Dict[str,Any]):
-        """Static method to convert a message Dict to a Message object.
+        """Static method to convert a message `dict` to a `Message` object.
 
         Args:
-            message: Dictionary representing a switch, e.g. one received directly from the API.
-            Must have a value the same attributes as required by the Message initializer.
+            message: Dictionary representing a message, e.g. one received directly from the API.
+            Must have a value the same attributes as required by the `Message` initializer.
 
         Returns:
-            message (Message): The corresponding Message object.
+            Message: The corresponding `Message` object.
         """
         return Message(
             timestamp=message["timestamp"],
@@ -756,7 +814,7 @@ class Message:
         )
 
     def json(self) -> Dict[str,Any]:
-        """Return Python Dict representing this Message.
+        """Return Python `dict` representing this message.
         """
         return {
             "timestamp": self.timestamp.json(),

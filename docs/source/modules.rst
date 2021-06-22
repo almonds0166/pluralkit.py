@@ -4,4 +4,4 @@ pluralkit
 .. toctree::
    :maxdepth: 4
 
-   v1
+   pluralkit

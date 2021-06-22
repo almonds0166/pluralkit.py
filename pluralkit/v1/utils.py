@@ -34,7 +34,8 @@ MEMBER_ATTRS = (
 )
 
 async def member_value(kwargs, key, value):
-    """Prepares the kwargs given to Client methods for PluralKit's API, internal use.
+    """Prepares the kwargs given to `~v1.client.Client` methods for PluralKit's API, for internal
+    use.
     """
     if not key in MEMBER_ATTRS:
         raise InvalidKwarg(key)
