@@ -14,10 +14,6 @@ from .errors import *
 
 class Privacy(Enum):
     """Represents the privacies accepted by PluralKit.
-
-    Note:
-        `Privacy.NULL` is the same as `Privacy.PUBLIC` in effect, and is mainly implemented for
-        legacy reasons and internal convenience.
     """
     PUBLIC = "public"
     PRIVATE = "private"
@@ -227,7 +223,7 @@ class Timestamp(datetime):
     def json(self) -> str:
         """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
         """
-        return self.stftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
+        return self.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
 
 class Birthday(Timestamp):
     """Represents a birthday.

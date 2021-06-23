@@ -98,8 +98,17 @@ Enumerations
 Privacy
 ~~~~~~~
 
-.. autoclass:: Privacy
-   :members:
+.. attribute:: Privacy.PUBLIC
+
+   Represents a public PluralKit privacy setting.
+
+.. attribute:: Privacy.PRIVATE
+
+   Represents a private PluralKit privacy setting.
+
+.. attribute:: Privacy.NULL
+
+   Equivalent to `Privacy.PUBLIC` in effect. Intended for internal use.
 
 Exceptions
 ----------
