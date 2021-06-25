@@ -17,7 +17,7 @@ class Privacy(Enum):
     """
     PUBLIC = "public"
     PRIVATE = "private"
-    NULL = None # legacy, effectively resets privacy to "public"
+    UNKNOWN = None # legacy, effectively resets privacy to "public"
 
 class Color(colour.Color):
     """Represents a color.
@@ -154,28 +154,102 @@ class Timezone:
         """
         return self.zone
     
-class Timestamp(datetime):
+class Timestamp:
     """Represents a PluralKit UTC timestamp.
 
-    This class is initialized in the same way that a `datetime`_ object is. It may also take a
-    `datetime`_ object directly.
+    This class works by wrapping around a `datetime` object. Use ts.datetime to access it, for any
+    `Timestamp` ts.
 
-    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+    This class may be initialized in the same way that a `datetime` object is. It may also take a
+    `datetime` object directly.
     """
-    def __new__(cls, *args, **kwargs):
-        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], datetime):
-            dt = args[0].astimezone(pytz.UTC) # convert to UTC if timezone info is available.
-            return datetime.__new__(cls,
-                dt.year,
-                dt.month,
-                dt.day,
-                dt.hour,
-                dt.minute,
-                dt.second,
-                dt.microsecond
+    def __init__(self, dt: Optional[datetime]=None, *,
+        year: Optional[int]=None,
+        month: Optional[int]=None,
+        day: Optional[int]=None,
+        hour: int=0,
+        minute: int=0,
+        second: int=0,
+        microsecond: int=0
+    ):
+        if dt is None and any(arg is None for arg in (year, month, day)):
+            raise TypeError(
+                f"{self.__class__.__name__} is missing required arguments. Either provide a " \
+                f"datetime.datetime via the first positional argument, or provide the year, " \
+                f"month, and day through the respective keyword arguments (and optionally the " \
+                f"hour, minute, second, and microsecond parameters as well)."
             )
+
+        if dt is not None:
+            self.datetime = dt
+
         else:
-            return datetime.__new__(cls, *args, **kwargs)
+            self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.json()})"
+
+    def __str__(self):
+        return (
+            f"{self.year:04d}-{self.month:02d}-{self.day:02d} "
+            f"{self.hour:02d}:{self.minute:02d}:{self.second:02d} UTC"
+        )
+
+    @property
+    def year(self):
+        return self.datetime.year
+
+    @year.setter
+    def year(self, value):
+        self.datetime = self.datetime.replace(year=value)
+
+    @property
+    def month(self):
+        return self.datetime.month
+
+    @month.setter
+    def month(self, value):
+        self.datetime = self.datetime.replace(month=value)
+
+    @property
+    def day(self):
+        return self.datetime.day
+
+    @day.setter
+    def day(self, value):
+        self.datetime = self.datetime.replace(day=value)
+
+    @property
+    def hour(self):
+        return self.datetime.hour
+
+    @hour.setter
+    def hour(self, value):
+        self.datetime = self.datetime.replace(hour=value)
+
+    @property
+    def minute(self):
+        return self.datetime.minute
+
+    @minute.setter
+    def minute(self, value):
+        self.datetime = self.datetime.replace(minute=value)
+
+    @property
+    def second(self):
+        return self.datetime.second
+
+    @second.setter
+    def second(self, value):
+        self.datetime = self.datetime.replace(second=value)
+
+    @property
+    def microsecond(self):
+        return self.datetime.microsecond
+
+    @microsecond.setter
+    def microsecond(self, value):
+        self.datetime = self.datetime.replace(microsecond=value)
 
     @staticmethod
     def parse(ts):
@@ -218,16 +292,25 @@ class Timestamp(datetime):
         Returns:
             Timestamp: The corresponding `Timestamp` object.
         """
-        return Timestamp.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ")
+        return Timestamp(datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ"))
 
     def json(self) -> str:
         """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
         """
-        return self.strftime(r"%Y-%m-%dT%H:%M:%S.%fZ")
+        return (
+            f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
+            f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
+        )
 
 class Birthday(Timestamp):
     """Represents a birthday.
     """
+    def __str__(self):
+        if self.hidden_year:
+            return self.datetime.strftime("%b %d")
+        else:
+            return self.datetime.strftime("%b %d, ") + f"{self.year:04d}"
+
     @property
     def hidden_year(self) -> bool:
         """Whether this birthday's year is hidden.
@@ -286,12 +369,12 @@ class Birthday(Timestamp):
         Returns:
             Birthday: The corresponding birthday.
         """
-        return Birthday.strptime(bd, r"%Y-%m-%d")
+        return Birthday(datetime.strptime(bd, r"%Y-%m-%d"))
 
     def json(self) -> str:
         """Returns the ``YYYY-MM-DD`` formatted birthdate.
         """
-        return self.strftime(r"%Y-%m-%d")
+        return f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
 
 class ProxyTag:
     """Represents a single PluralKit proxy tag.

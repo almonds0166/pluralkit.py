@@ -106,9 +106,9 @@ Privacy
 
    Represents a private PluralKit privacy setting.
 
-.. attribute:: Privacy.NULL
+.. attribute:: Privacy.UNKNOWN
 
-   Equivalent to `Privacy.PUBLIC` in effect. Intended for internal use.
+   Equivalent to `Privacy.PUBLIC` in effect. Returned for member and system privacy fields if the client does not have an authorization token set.
 
 Exceptions
 ----------
