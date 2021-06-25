@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.abspath(".."))
 from pluralkit import __version__
 sys.path.append("../pluralkit/v1")
 sys.path.append("../pluralkit")
+from datetime import datetime
 
 # -- Project information -----------------------------------------------------
 
@@ -57,6 +58,11 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #html_theme = "basicstrap" # https://pythonhosted.org/sphinxjp.themes.basicstrap/
 html_theme = "sphinx_book_theme" # https://sphinx-themes.org/sample-sites/sphinx-book-theme/
 
+today = datetime.utcnow().strftime(
+   "<time datetime=\"%Y-%m-%dT%H:%MZ\">" \
+   "%d %b at %H:%M UTC"
+   "</time>"
+)
 html_theme_options = {
    "home_page_in_toc": True,
    "toc_title": "Jump to",
@@ -64,7 +70,7 @@ html_theme_options = {
    "path_to_docs": "docs/",
    "use_repository_button": True,
    #"use_edit_page_button": True,
-   #"extra_navbar": "<p>Hello!</p>", # extra footer on left sidebar
+   "extra_navbar": f"<p>Last built {today}</p>", # extra footer on left sidebar
 }
 
 html_title = f"{project} v{release} docs"
