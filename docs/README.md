@@ -12,21 +12,15 @@
 3. Clean the build directory (if there was ever anything in there to begin with).
 
    ```bash
-   sphinx-build -M clean ./ _build/
+   sphinx-build -M clean source/ build/
    ```
-
-<!--4. Create reST files for all detected packages.
-
-   ```bash
-   sphinx-apidoc -f -o ./apidocs/ ../pluralkit/
-   ```-->
 
 4. Touch up the reST files under `source/`.
 
 5. Make the docs.
 
    ```bash
-   sphinx-build -M html ./ _build/
+   sphinx-build -M html source/ build/
    ```
 
-   The output under `.../docs/_build/html/` represents the HTML documentation.
+   The output under `.../docs/build/html/` represents the HTML documentation.

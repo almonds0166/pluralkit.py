@@ -19,7 +19,7 @@ Contents
 .. toctree::
    :maxdepth: 4
 
-   source/api
+   api
 
 Quick start
 -----------

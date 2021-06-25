@@ -2,7 +2,7 @@ __pycache__/
 main.py
 
 # docs
-docs/_build/
+docs/build/
 
 # virtual environment
 venv/
