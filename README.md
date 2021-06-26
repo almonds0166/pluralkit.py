@@ -16,6 +16,18 @@ async for member in pk.get_members("abcde"):
    print(f"{member.name} (`{member.id}`)")
 ```
 
+## Installing
+
+Python 3.6 or higher is required.
+
+```bash
+# linux/MacOS
+python3 -m pip install -U pluralkit
+
+# windows
+py -3 -m pip install -U pluralkit
+```
+
 ## Token
 
 The client can be used without one's [PluralKit authorization token](https://pluralkit.me/api/#authentication), but they'll need it if they'd like to edit their system or access any of their system's private members or info.
