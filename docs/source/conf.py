@@ -27,6 +27,7 @@ author = "Madison Landry, Alyx Warner"
 # The full version
 release = __version__
 
+print(f"Building docs for {project} v{release} !")
 
 # -- General configuration ---------------------------------------------------
 
@@ -35,6 +36,7 @@ release = __version__
 # ones.
 extensions = [
    "sphinx.ext.napoleon",
+
    "sphinx.ext.intersphinx",
    "sphinx.ext.autodoc",
    "sphinx_autodoc_typehints"

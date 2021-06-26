@@ -1,11 +1,18 @@
+# byte code
 __pycache__/
-main.py
 
 # docs
 docs/build/
+docs/push-docs.bat
 
 # virtual environment
 venv/
+
+# PyPI
+*.egg-info/
+dist/
+build/
+push-pypi.bat
 
 # etc.
 update_reqs.*

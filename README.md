@@ -22,6 +22,8 @@ The client can be used without one's [PluralKit authorization token](https://plu
 
 ## Links
 
+* [Latest build of the docs](https://web.mit.edu/almonds/www/pk.py/index.html)
+* [pk.py Discord support server](https://discord.gg/secvguatbC)
 * [PluralKit's API](https://pluralkit.me/)
 * [PluralKit support server](https://discord.gg/PczBt78)
 
@@ -33,7 +35,6 @@ The client can be used without one's [PluralKit authorization token](https://plu
   * `get_message`
   * `get_fronters`
 * Tidy up error handling
-* What to do with Client.get_url?
 * Documentation for get_switches, new_switch
 * Test timezone mechanics
 * Prepare for API v2
