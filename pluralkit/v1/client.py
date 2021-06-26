@@ -9,6 +9,7 @@ import asyncio
 import aiohttp
 import json
 import datetime
+from http.client import responses as RESPONSE_CODES
 
 from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
@@ -94,7 +95,7 @@ class Client:
                         raise DiscordUserNotFound(system)
                     
                     if response.status != 200: # catch-all
-                        raise PluralKitException()
+                        raise HTTPError(response.status)
 
                 resp = await response.json()
 
@@ -103,6 +104,33 @@ class Client:
                 if url.endswith("/s"):
                     # remember self ID for the future
                     self._id = system.id
+
+                return system
+    
+    async def edit_system(self, **kwargs):
+        """"Todo.
+        """
+
+        if self.token is None:
+            raise AuthorizationError()
+
+        url = f"https://api.pluralkit.me/v1/s"
+    
+        for key, value in kwargs.items():
+            kwargs = await system_value(key=key, value=value)
+        
+        print(kwargs)
+        
+        json_object = json.dumps(kwargs, ensure_ascii=False)
+
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
+            async with session.patch(url, data=json_object, ssl=True) as response:
+                if response.status != 200: # catch-all
+                    raise HTTPError(response.status)
+
+                resp = await response.json()
+
+                system = System.from_json(resp)
 
                 return system
 
@@ -125,7 +153,7 @@ class Client:
                 elif response.status == 403:
                     raise AccessForbidden()
                 if response.status != 200: # catch-all
-                    raise PluralKitException()
+                    raise HTTPError(response.status)
                 else:
                     resp = await response.json()
                     member_list = []
@@ -173,7 +201,7 @@ class Client:
                         raise DiscordUserNotFound(system)
                     
                 if response.status != 200: # catch-all
-                    raise PluralKitException()
+                    raise HTTPError(response.status)
 
                 resp = await response.json()
 
@@ -370,7 +398,7 @@ class Client:
                         raise AccessForbidden()
 
                     if response.status != 204: # catch-all
-                        raise PluralKitException()
+                        raise HTTPError(response.status)
 
     async def get_switches(self, system=None):
         """Todo.
@@ -400,7 +428,7 @@ class Client:
                         raise DiscordUserNotFound(system)
                     
                 if response.status != 200: # catch-all
-                    raise PluralKitException()
+                    raise HTTPError(response.status)
 
                 resp = await response.json()
 
@@ -426,7 +454,7 @@ class Client:
                     raise AccessForbidden()
                     
                 if response.status != 204: # catch-all
-                    raise PluralKitException()
+                    raise HTTPError(response.status)
     
     async def get_message(self, message: Union[str, Message]):
         """Todo.
@@ -444,7 +472,7 @@ class Client:
                 elif response.status == 403:
                     raise AccessForbidden()
                 if response.status != 200: # catch-all
-                    raise PluralKitException()
+                    raise HTTPError(response.status)
                 else:
                     resp = await response.json()
                     
