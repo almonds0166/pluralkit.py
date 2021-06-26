@@ -11,7 +11,7 @@ import aiohttp
 import colour
 import pytz
 
-from .models import ProxyTag, Privacy
+from .models import ProxyTag, Privacy, Timezone
 from .errors import *
 
 MEMBER_ATTRS = (
@@ -31,6 +31,18 @@ MEMBER_ATTRS = (
     "pronoun_privacy",
     "metadata_privacy",
     "birthday_privacy"
+)
+
+SYSTEM_ATTRS = (
+    "name",
+    "description",
+    "tag",
+    "avatar_url",
+    "tz",
+    "description_privacy",
+    "member_list_privacy",
+    "front_privacy",
+    "front_history_privacy"
 )
 
 async def member_value(kwargs, key, value):
@@ -88,4 +100,12 @@ async def member_value(kwargs, key, value):
 
     return kwargs
 
-
+async def system_value(kwargs, key, value):
+    if not key in SYSTEM_ATTRS:
+        raise InvalidKwarg(key)
+    if key in ("name", "description", "tag", "avatar_url") and not isinstance(value, str):
+        raise ValueError(f"{key}'s value must be of type string")
+    if key == "tz" and not isinstance(value, (Timezone, str)):
+        raise ValueError(f"{key}'s value must be of type string or Timezone")
+    if key in ("description_privacy", "member_list_privacy", "front_privacy", "front_history_privacy") and not isinstance(value, bool):
+        raise ValueError(f"{key}'s value must be of type bool")

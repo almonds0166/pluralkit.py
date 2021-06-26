@@ -105,6 +105,32 @@ class Client:
                     self._id = system.id
 
                 return system
+    
+    async def edit_system(self, **kwargs):
+        """"Todo.
+        """
+
+        if self.token is None:
+            raise AuthorizationError()
+
+        await self._check_self_id()
+        url = f"https://api.pluralkit.me/v1/s/{self.id}"
+    
+        for key, value in kwargs.items():
+            kwargs = await system_value(kwargs=kwargs, key=key, value=value)
+        
+        json_object = json.dumps(kwargs, ensure_ascii=False)
+
+        async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
+            async with session.patch(url, data=json_object, ssl=True) as response:
+                if response.status != 200: # catch-all
+                    raise PluralKitException()
+
+                resp = await response.json()
+
+                system = System.from_json(resp)
+
+                return system
 
     async def get_fronters(self, system: str=None):
         """Todo.
