@@ -22,6 +22,7 @@ The client can be used without one's [PluralKit authorization token](https://plu
 
 ## Links
 
+* [PyPI link](https://pypi.org/project/pluralkit/)
 * [Latest build of the docs](https://web.mit.edu/almonds/www/pk.py/index.html)
 * [pk.py Discord support server](https://discord.gg/secvguatbC)
 * [PluralKit's API](https://pluralkit.me/)
@@ -29,11 +30,7 @@ The client can be used without one's [PluralKit authorization token](https://plu
 
 ## Todo
 
-* methods:
-  * `edit_system`
-  * `delete_member`
-  * `get_message`
-  * `get_fronters`
+* Documentation, particularly for client methods
 * Tidy up error handling
 * Documentation for get_switches, new_switch
 * Test timezone mechanics

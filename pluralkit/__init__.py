@@ -18,7 +18,7 @@ from .v1.models import (
 from .v1 import errors
 
 VersionInfo = namedtuple("VersionInfo", "major minor build")
-version_info = VersionInfo(major=0, minor=0, build=1)
+version_info = VersionInfo(major=0, minor=0, build=2)
 
 __title__ = "pluralkit"
 __author__ = "Madison Landry, Alyx Warner"
