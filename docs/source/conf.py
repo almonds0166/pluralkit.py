@@ -12,10 +12,10 @@
 #
 import os
 import sys
+sys.path.append(os.path.abspath("../.."))
+sys.path.append(os.path.abspath("../../pluralkit/v1"))
 sys.path.insert(0, os.path.abspath(".."))
 from pluralkit import __version__
-sys.path.append("../pluralkit/v1")
-sys.path.append("../pluralkit")
 from datetime import datetime
 
 # -- Project information -----------------------------------------------------
@@ -35,10 +35,14 @@ release = __version__
 # ones.
 extensions = [
    "sphinx.ext.napoleon",
+
+   "sphinx.ext.intersphinx",
    "sphinx.ext.autodoc",
-   #"sphinxjp.themes.basicstrap",
    "sphinx_autodoc_typehints"
 ]
+intersphinx_mapping = {
+   "python": ("https://docs.python.org/3", None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
