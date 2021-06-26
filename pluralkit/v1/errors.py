@@ -7,7 +7,8 @@ __all__ = (
     "AccessForbidden",
     "InvalidKwarg",
     "InvalidColor",
-    "InvalidBirthday"
+    "InvalidBirthday",
+    "HTTPError"
 )
 
 class PluralKitException(Exception):
@@ -57,7 +58,7 @@ class AccessForbidden(PluralKitException):
             "missing, invalid, or does not correspond to the system."
         ))
 
-class InvalidKwarg(Exception):
+class InvalidKwarg(PluralKitException):
     """
     Thrown when an invalid field is passed in a POST or PATCH request
     """
@@ -66,7 +67,7 @@ class InvalidKwarg(Exception):
             f"A keyworded argument was passed that will not be accepted by the server: `{key}`"
         )
 
-class InvalidColor(Exception):
+class InvalidColor(PluralKitException):
     """
     Thrown when an invalid color is passed in a POST or PATCH request
     """
@@ -75,11 +76,19 @@ class InvalidColor(Exception):
                 f"Given value is not a string or Color object: `{color}`"
             )
 
-class InvalidBirthday(Exception):
+class InvalidBirthday(PluralKitException):
     """
     Thrown when an invalid string is passed for the "Birthday" field of a member object. (Must be yyyy-mm-dd)
     """
     def __init__(self, string):
         super().__init__(
             f"`{string}` is not a valid yyyy-mm-dd date or datetime.datetime object"
+        )
+
+class HTTPError(PluralKitException):
+    """Todo.
+    """
+    def __init__(self, error):
+        super().__init__(
+            f"An error was raised: {error}"
         )
