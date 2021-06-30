@@ -110,7 +110,7 @@ class Timezone:
             self.tz = pytz.timezone(args[0])
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.zone})"
+        return f"{self.__class__.__name__}<{self.zone}>"
 
     @property
     def zone(self):
@@ -181,14 +181,15 @@ class Timestamp:
             )
 
         if dt is not None:
-            self.datetime = dt
+            self.datetime = dt.astimezone(pytz.utc)
 
         else:
             # mypy complains here
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
+            self.datetime = self.datetime.astimezone(pytz.utc)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.json()})"
+        return f"{self.__class__.__name__}<{self.json()}>"
 
     def __str__(self):
         return (
@@ -806,6 +807,9 @@ class Switch:
         else:
             self.members = [member for member in members]
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.timestamp}>"
+
     @staticmethod
     def from_json(switch: Dict[str,str]):
         """Static method to convert a switch `dict` to a `Switch` object.
@@ -874,6 +878,9 @@ class Message:
         self.member = member
 
         self.timestamp = Timestamp.parse(timestamp)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.id})"
 
     @staticmethod
     def from_json(message: Dict[str,Any]):

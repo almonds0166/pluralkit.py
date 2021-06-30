@@ -107,7 +107,7 @@ class Client:
 
                 return system
     
-    async def edit_system(self, **kwargs):
+    async def edit_system(self, **kwargs) -> System:
         """"Edits one's own system
         
         Note:
@@ -127,6 +127,11 @@ class Client:
             member_list_privacy(Optional[str]): The new system member list privacy value
             front_privacy(Optional[str]): The new system front privacy value
             metadata_privacy(Optional[str]): The new system metadata privacy value
+
+        Returns:
+            System: The updated system.
+
+        .. _`PluralKit's system model`: https://pluralkit.me/api/#system-model
         """
 
         if self.token is None:
@@ -139,7 +144,10 @@ class Client:
         
         json_object = json.dumps(kwargs, ensure_ascii=False)
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
+        async with aiohttp.ClientSession(
+            trace_configs=None,
+            headers=self.content_headers
+        ) as session:
             async with session.patch(url, data=json_object, ssl=True) as response:
                 if response.status != 200: # catch-all
                     raise HTTPError(response.status)
@@ -157,7 +165,8 @@ class Client:
             system(Optional[Union[str, System]]): The system to fetch fronters from.
         
         Returns:
-            Set(Timestamp, List[Member]): A set containing a Timestamp object and a list of current fronters in Member objects
+            Set(Timestamp, List[Member]): A set containing a Timestamp object and a list of current
+            fronters in Member objects
         """
         
         if system is None: 
@@ -405,7 +414,7 @@ class Client:
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
         
-    async def delete_member(self, member_id):
+    async def delete_member(self, member_id) -> None:
         """Deletes a member of one's system
         
         Note:
@@ -413,6 +422,8 @@ class Client:
         
         Args:
             member_id (str): The ID of the member to be deleted.
+
+        .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
 
         url = f"{self.SERVER}/m/{member_id}"
@@ -429,13 +440,13 @@ class Client:
                         raise HTTPError(response.status)
 
     async def get_switches(self, system=None):
-        """Fetches the switch history of a system
+        """Fetches the switch history of a system.
         
         Args:
             system (Optional[Union[str, System]])
             
         Yields:
-             Switch: The next switch
+             Switch: The next switch.
         """
         
         if system is None:
@@ -472,7 +483,7 @@ class Client:
                     switch = Switch.from_json(item)
                     yield switch
 
-    async def new_switch(self, members):
+    async def new_switch(self, members) -> Switch:
         """Creates a new switch
         
         Note:
@@ -480,6 +491,11 @@ class Client:
         
         Args:
             members(Sequence[str]): A list of members that will be present in the new switch.
+
+        Returns:
+            Switch: The newly created switch.
+
+        .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
 
         if self.token is None:
@@ -498,14 +514,15 @@ class Client:
                 if response.status != 204: # catch-all
                     raise HTTPError(response.status)
     
-    async def get_message(self, message: Union[str, int, Message]):
+    async def get_message(self, message: Union[str, int, Message]) -> Message:
         """Fetches a message proxied by pluralkit
         
         Note:
-            Messages proxied by pluralkit can be fetched either with the new message's id, or the id of the message that triggered the proxy
+            Messages proxied by pluralkit can be fetched either with the proxy message's id, or the
+            id of the original message that triggered the proxy.
         
         Args:
-            message(Union[str, int, Message]): The message to be fetched
+            Message: The message to be fetched.
         """
         
         if isinstance(message, (str, int)):

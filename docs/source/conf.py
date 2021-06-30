@@ -20,7 +20,7 @@ from datetime import datetime
 
 # -- Project information -----------------------------------------------------
 
-project = "pk.py"
+project = "pluralkit.py"
 copyright = "2021, Madison Landry, Alyx Warner"
 author = "Madison Landry, Alyx Warner"
 
@@ -65,13 +65,13 @@ html_theme = "sphinx_book_theme" # https://sphinx-themes.org/sample-sites/sphinx
 
 today = datetime.utcnow().strftime(
    "<time datetime=\"%Y-%m-%dT%H:%MZ\">" \
-   "%d %b at %H:%M UTC"
+   "%b %d at %H:%M UTC"
    "</time>"
 )
 html_theme_options = {
    "home_page_in_toc": True,
    "toc_title": "Jump to",
-   "repository_url": "https://github.com/almonds0166/pk.py",
+   "repository_url": "https://github.com/almonds0166/pluralkit.py",
    "path_to_docs": "docs/",
    "use_repository_button": True,
    #"use_edit_page_button": True,
