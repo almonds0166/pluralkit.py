@@ -2,7 +2,7 @@
 __pycache__/
 
 # docs
-docs/build/
+docs/_build/
 docs/push-docs.bat
 
 # virtual environment
