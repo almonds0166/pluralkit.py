@@ -27,6 +27,7 @@ author = "Madison Landry, Alyx Warner"
 # The full version
 release = __version__
 
+print(f"Building docs for {project} v{release} !")
 
 # -- General configuration ---------------------------------------------------
 

@@ -6,6 +6,7 @@ from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
+    Generator,
 )
 
 import pytz
@@ -71,7 +72,7 @@ class Color(colour.Color):
     def from_json(color: str):
         """Takes in a string (as returned by the API) and returns the `Color`.
         """
-        return Color.__new__(Color, f"#{color}")
+        return Color.__new__(Color, f"#{color}") # mypy says this has too many args?
 
     def json(self):
         """Returns the hex of the `Color` sans the ``#`` symbol.
@@ -176,14 +177,14 @@ class Timestamp:
             raise TypeError(
                 f"{self.__class__.__name__} is missing required arguments. Either provide a " \
                 f"datetime.datetime via the first positional argument, or provide the year, " \
-                f"month, and day through the respective keyword arguments (and optionally the " \
-                f"hour, minute, second, and microsecond parameters as well)."
+                f"month, and day through the respective keyword arguments."
             )
 
         if dt is not None:
             self.datetime = dt
 
         else:
+            # mypy complains here
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
 
     def __repr__(self):
@@ -433,7 +434,7 @@ class ProxyTag:
         return (True if not self.prefix else message.startswith(self.prefix)) \
             and (True if not self.suffix else message.endswith(self.suffix))
 
-    def json(self) -> Dict[str,str]:
+    def json(self) -> Dict[str,Optional[str]]:
         """Return the JSON object representing this proxy tag as a Python `dict`.
         """
         return {
@@ -450,9 +451,12 @@ class ProxyTags:
     Args:
         proxy_tags: A sequence of `ProxyTag` objects.
     """
-    def __init__(self, proxy_tags: Optional[Sequence[ProxyTag]]=None):
-        if proxy_tags is None: proxy_tags = tuple()
-        self._proxy_tags = tuple(proxy_tags)
+    def __init__(self, proxy_tags: Optional[Generator[ProxyTag,None,None]]=None):
+        self._proxy_tags: Tuple[ProxyTag,...]
+        if proxy_tags is None:
+            self._proxy_tags = tuple()
+        else:
+            self._proxy_tags = tuple(proxy_tags)
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{len(self._proxy_tags)}>"
@@ -732,8 +736,8 @@ class Member:
             proxy_tags = ProxyTags.from_json(member["proxy_tags"])
         return Member(
             id=member["id"],
-            name=member.get("name"),
-            name_privacy=member.get("name_privacy"),
+            name=member["name"],
+            name_privacy=member.get("name_privacy", "public"),
             created=member["created"],
             display_name=member.get("display_name"),
             description=member.get("description"),
