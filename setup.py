@@ -51,11 +51,11 @@ setup(
       ]
    },
    python_requires=">=3.6.0",
-   url="https://github.com/almonds0166/pk.py",
+   url="https://github.com/almonds0166/pluralkit.py",
    author="Madison Landry, Alyx Warner",
    author_email="pkpy@mit.edu",
    project_urls={
-     "Documentation": "https://web.mit.edu/almonds/www/pk.py/index.html",
-     "Issue tracker": "https://github.com/almonds0166/pk.py/issues",
+     "Documentation": "https://pluralkit.readthedocs.io/en/latest/",
+     "Issue tracker": "https://github.com/almonds0166/pluralkit.py/issues",
    },
 )
