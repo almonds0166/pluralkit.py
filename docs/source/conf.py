@@ -31,6 +31,8 @@ print(f"Building docs for {project} v{release} !")
 
 # -- General configuration ---------------------------------------------------
 
+master_doc = "source/index"
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
@@ -79,8 +81,8 @@ html_theme_options = {
 }
 
 html_title = f"{project} v{release} docs"
-#html_logo = "path/to/logo.png"
-#html_favicon = "path/to/favicon.ico"
+html_logo = "images/pluralkit_py_logo.png"
+html_favicon = "images/pluralkit_py_logo.png"
 show_navbar_depth = 3
 
 # Add any paths that contain custom static files (such as style sheets) here,
