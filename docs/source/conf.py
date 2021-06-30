@@ -79,8 +79,8 @@ html_theme_options = {
 }
 
 html_title = f"{project} v{release} docs"
-#html_logo = "path/to/logo.png"
-#html_favicon = "path/to/favicon.ico"
+html_logo = "images/pluralkit_py_logo.png"
+html_favicon = "images/pluralkit_py_logo.png"
 show_navbar_depth = 3
 
 # Add any paths that contain custom static files (such as style sheets) here,
