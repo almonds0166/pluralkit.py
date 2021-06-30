@@ -16,7 +16,7 @@ setup(
    license="MIT",
    py_modules=["pluralkit"],
    classifiers=[ # https://pypi.org/classifiers/
-      "Development Status :: 2 - Pre-Alpha",
+      "Development Status :: 3 - Alpha",
       "Programming Language :: Python :: 3.6", # f-strings
       "Programming Language :: Python :: 3.7",
       "Programming Language :: Python :: 3.8",
