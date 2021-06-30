@@ -5,10 +5,12 @@
 
 .. currentmodule:: pluralkit
 
-Welcome to pk.py's documentation!
-=================================
+Welcome to pluralkit.py's documentation!
+========================================
 
-pk.py is an asynchronous Python wrapper for `PluralKit's API`_ created with `discord.py`_ in mind.
+**pluralkit.py** is an asynchronous Python wrapper for `PluralKit's API`_ created with `discord.py`_ in mind.
+
+If visiting here for the first time, check out :ref:`the Getting Started page <getting_started>`!
 
 .. _`PluralKit's API`: https://pluralkit.me/
 .. _`discord.py`: https://discordpy.readthedocs.io/en/stable/
@@ -17,39 +19,22 @@ Contents
 --------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
 
    api
-
-Quick start
------------
-
-This module operates around the `pluralkit.Client` class.
-
-Here's an example script that simply prints one's system members, given their `authorization token`_.
-
-.. code-block:: python
-
-   import asyncio
-   from pluralkit import Client
-
-   async def main():
-      pk = Client("token") # your token here
-
-      async for member in pk.get_members():
-         print(f"{member.name} (`{member.id}`)")
-
-   if __name__ == "__main__":
-      asyncio.get_event_loop().run_until_complete(main())
-
-.. _`authorization token`: https://pluralkit.me/api/#authentication
+   quickstart
+   changelog
 
 Links
 -----
 
+- `PyPI link`_
+- `pluralkit.py's Discord support server`_
 - `PluralKit's API`_
 - `PluralKit support server`_
 
+.. _`PyPI link`: https://pypi.org/project/pluralkit/
+.. _`pluralkit.py's Discord support server`: https://discord.gg/secvguatbC
 .. _`PluralKit's API`: https://pluralkit.me/
 .. _`PluralKit support server`: https://discord.gg/PczBt78
 

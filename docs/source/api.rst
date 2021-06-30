@@ -4,25 +4,6 @@
 API reference
 =============
 
-Version related info
---------------------
-
-There are two main ways to query version information about the library.
-
-.. data:: version_info
-
-   A named tuple of the form ``major.minor.build``, where:
-
-   - ``major`` is a major release, representing either many new features or a significant refactor to the underlying API or API wrapper.
-
-   - ``minor`` is a minor release, representing some new features on the given major release.
-
-   - ``build`` is incremented for each latest build, revision, or commit of a minor release.
-
-.. data:: __version__
-
-    A string representation of the version. e.g. ``"1.1.23"``.
-
 Client
 ------
 
