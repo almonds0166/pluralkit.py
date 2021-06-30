@@ -12,15 +12,15 @@
 3. Clean the build directory (if there was ever anything in there to begin with).
 
    ```bash
-   sphinx-build -M clean source/ build/
+   sphinx-build -M clean . _build/
    ```
 
-4. Touch up the reST files under `source/`.
+4. Touch up the reST files at `index.rst` and under `source/`.
 
 5. Make the docs.
 
    ```bash
-   sphinx-build -M html source/ build/
+   sphinx-build -M html . _build/
    ```
 
-   The output under `.../docs/build/html/` represents the HTML documentation.
+   The output under `.../docs/_build/html/` represents the HTML documentation.
