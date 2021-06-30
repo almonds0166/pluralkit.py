@@ -108,7 +108,25 @@ class Client:
                 return system
     
     async def edit_system(self, **kwargs):
-        """"Todo.
+        """"Edits one's own system
+        
+        Note:
+            Any fields not passed will retain their prior value.
+            Any fields passed with null will clear or reset to the default.
+            
+        Args:
+            **kwargs: Any number of keyworded patchable values from `PluralKit's system model`_.
+            
+        Keyword Args:
+            name(str): The new system name.
+            description(Optional[str]): The new system description.
+            tag(Optional[str]): The new system tag.
+            avatar_url(Optional[str]): The new system avatar.
+            tz(Optional[str]): The timezone as a tzdb identifier, null will store "UTC"
+            description_privacy(Optional[str]): The new system description privacy value
+            member_list_privacy(Optional[str]): The new system member list privacy value
+            front_privacy(Optional[str]): The new system front privacy value
+            metadata_privacy(Optional[str]): The new system metadata privacy value
         """
 
         if self.token is None:
@@ -118,8 +136,6 @@ class Client:
     
         for key, value in kwargs.items():
             kwargs = await system_value(key=key, value=value)
-        
-        print(kwargs)
         
         json_object = json.dumps(kwargs, ensure_ascii=False)
 
@@ -134,8 +150,14 @@ class Client:
 
                 return system
 
-    async def get_fronters(self, system: str=None):
-        """Todo.
+    async def get_fronters(self, system=None):
+        """Fetches the current fronters of a system.
+        
+        Args:
+            system(Optional[Union[str, System]]): The system to fetch fronters from.
+        
+        Returns:
+            Set(Timestamp, List[Member]): A set containing a Timestamp object and a list of current fronters in Member objects
         """
         
         if system is None: 
@@ -383,8 +405,14 @@ class Client:
                 else:
                     raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
         
-    async def delete_member(self, member_id: str):
-        """Todo.
+    async def delete_member(self, member_id):
+        """Deletes a member of one's system
+        
+        Note:
+            The system's `authorization token`_ must be set in order to use :meth:`delete_member`.
+        
+        Args:
+            member_id (str): The ID of the member to be deleted.
         """
 
         url = f"{self.SERVER}/m/{member_id}"
@@ -401,11 +429,19 @@ class Client:
                         raise HTTPError(response.status)
 
     async def get_switches(self, system=None):
-        """Todo.
+        """Fetches the switch history of a system
+        
+        Args:
+            system (Optional[Union[str, System]])
+            
+        Yields:
+             Switch: The next switch
         """
         
-        if system is None: raise Exception("Must have system ID, even with an authorization token")
-
+        if system is None:
+            #Authorized system
+            await _check_self_id()
+            system_url = f"/s/{self.id}"
         elif isinstance(system, System):
             # System object
             system_url = f"/s/{system.id}"
@@ -436,8 +472,14 @@ class Client:
                     switch = Switch.from_json(item)
                     yield switch
 
-    async def new_switch(self, members: Sequence[str]):
-        """Todo.
+    async def new_switch(self, members):
+        """Creates a new switch
+        
+        Note:
+            The system's `authorization token`_ must be set in order to use :meth:`delete_member`.
+        
+        Args:
+            members(Sequence[str]): A list of members that will be present in the new switch.
         """
 
         if self.token is None:
@@ -456,8 +498,14 @@ class Client:
                 if response.status != 204: # catch-all
                     raise HTTPError(response.status)
     
-    async def get_message(self, message: Union[str, Message]):
-        """Todo.
+    async def get_message(self, message: Union[str, int, Message]):
+        """Fetches a message proxied by pluralkit
+        
+        Note:
+            Messages proxied by pluralkit can be fetched either with the new message's id, or the id of the message that triggered the proxy
+        
+        Args:
+            message(Union[str, int, Message]): The message to be fetched
         """
         
         if isinstance(message, (str, int)):
