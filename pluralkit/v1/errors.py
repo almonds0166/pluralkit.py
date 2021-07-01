@@ -78,7 +78,8 @@ class InvalidColor(PluralKitException):
 
 class InvalidBirthday(PluralKitException):
     """
-    Thrown when an invalid string is passed for the "Birthday" field of a member object. (Must be yyyy-mm-dd)
+    Thrown when an invalid string is passed for the "Birthday" field of a member object. 
+    (Must be yyyy-mm-dd)
     """
     def __init__(self, string):
         super().__init__(

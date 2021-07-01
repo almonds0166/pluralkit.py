@@ -11,7 +11,7 @@ import aiohttp
 import colour
 import pytz
 
-from .models import ProxyTag, Privacy, Timezone
+from .models import ProxyTag, Privacy, Timezone, Color
 from .errors import *
 
 MEMBER_ATTRS = (
@@ -53,7 +53,7 @@ async def member_value(kwargs, key, value):
         raise InvalidKwarg(key)
     if key == "color":
         if value is not None:
-            kwargs[key] = parse_color(value).hex_l[1:]
+            kwargs[key] = Color.parse(value).hex_l[1:]
     elif key == "birthday":
         if isinstance(value, datetime.date): # will catch Timestamp and Birthday objects
             kwargs[key] = value.strftime("%Y-%m-%d")
@@ -95,7 +95,7 @@ async def member_value(kwargs, key, value):
                     f"Keyword arg `proxy_tags` must be a ProxyTags object, a sequence of " \
                     f"ProxyTag objects, or a sequence of dict containing the keys 'prefix' " \
                     f"and 'suffix'."
-                )
+                    )
         kwargs[key] = proxy_tags
 
     return kwargs
@@ -107,6 +107,7 @@ async def system_value(key, value):
         raise ValueError(f"{key}'s value must be of type string")
     if key == "tz" and not isinstance(value, (Timezone, str)):
         raise ValueError(f"{key}'s value must be of type string or Timezone")
-    if key in ("description_privacy", "member_list_privacy", "front_privacy", "front_history_privacy") and not isinstance(value, bool):
+    if key in ("description_privacy", "member_list_privacy", "front_privacy", 
+              "front_history_privacy") and not isinstance(value, bool):
         raise ValueError(f"{key}'s value must be of type bool")
 

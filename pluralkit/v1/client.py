@@ -6,7 +6,7 @@ from typing import (
 )
 
 import asyncio
-import aiohttp
+import httpx
 import json
 import datetime
 from http.client import responses as RESPONSE_CODES
@@ -29,7 +29,8 @@ class Client:
 
     SERVER = "https://api.pluralkit.me/v1"
 
-    def __init__(self, token: Optional[str]=None, user_agent: Optional[str]=None):
+    def __init__(self, async_: bool=True, token: Optional[str]=None, user_agent: Optional[str]=None):
+        self.async_mode = async_
         self.token = token
         self.headers = { }
         if token:
@@ -69,8 +70,6 @@ class Client:
 
         return url
 
-
-
     async def get_system(self, system: Union[System,str,int,None]=None) -> System:
         """Return a system by its system ID or Discord user ID.
 
@@ -84,28 +83,28 @@ class Client:
         url = Client._get_system_url(self, system)
 
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.get(url, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 404:
-                    if isinstance(system, str):
-                        raise SystemNotFound(system)
-                    elif isinstance(system, int):
-                        raise DiscordUserNotFound(system)
-                    
-                    if response.status != 200: # catch-all
-                        raise HTTPError(response.status)
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(url)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 404:
+                if isinstance(system, str):
+                    raise SystemNotFound(system)
+                elif isinstance(system, int):
+                    raise DiscordUserNotFound(system)
+                
+                if response.status_code != 200: # catch-all
+                    raise HTTPError(response.status_code)
 
-                resp = await response.json()
+            resp = response.json()
 
-                system = System.from_json(resp)
+            system = System.from_json(resp)
 
-                if url.endswith("/s"):
-                    # remember self ID for the future
-                    self._id = system.id
+            if url.endswith("/s"):
+                # remember self ID for the future
+                self._id = system.id
 
-                return system
+            return system
     
     async def edit_system(self, **kwargs) -> System:
         """"Edits one's own system
@@ -144,19 +143,16 @@ class Client:
         
         json_object = json.dumps(kwargs, ensure_ascii=False)
 
-        async with aiohttp.ClientSession(
-            trace_configs=None,
-            headers=self.content_headers
-        ) as session:
-            async with session.patch(url, data=json_object, ssl=True) as response:
-                if response.status != 200: # catch-all
-                    raise HTTPError(response.status)
+        async with httpx.AsyncClient(headers=self.content_headers) as session:
+            response = await session.patch(url, data=json_object)
+            if response.status_code != 200: # catch-all
+                raise HTTPError(response.status_code)
 
-                resp = await response.json()
+            resp = response.json()
 
-                system = System.from_json(resp)
+            system = System.from_json(resp)
 
-                return system
+            return system
 
     async def get_fronters(self, system=None):
         """Fetches the current fronters of a system.
@@ -177,21 +173,21 @@ class Client:
         elif isinstance(system, System):
             url = f"{self.SERVER}/s/{system.id}/fronters"
         
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.get(url, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 403:
-                    raise AccessForbidden()
-                if response.status != 200: # catch-all
-                    raise HTTPError(response.status)
-                else:
-                    resp = await response.json()
-                    member_list = []
-                    for fronter in resp['members']:
-                        member_list.append(Member.from_json(fronter))
-                    timestamp = Timestamp.from_json(resp['timestamp'])
-                    return (timestamp, member_list)
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(url)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 403:
+                raise AccessForbidden()
+            if response.status_code != 200: # catch-all
+                raise HTTPError(response.status_code)
+            else:
+                resp = response.json()
+                member_list = []
+                for fronter in resp['members']:
+                    member_list.append(Member.from_json(fronter))
+                timestamp = Timestamp.from_json(resp['timestamp'])
+                return (timestamp, member_list)
 
     async def get_members(self, system: Union[System,str,int,None]=None):
         """Retrieve list of a system's members.
@@ -219,27 +215,27 @@ class Client:
             system = await self.get_system(system)
             url = f"{self.SERVER}/s/{system.id}/members"
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.get(url, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 403:
-                    raise AccessForbidden()
-                elif response.status == 404:
-                    if isinstance(system, str):
-                        raise SystemNotFound(system)
-                    elif isinstance(system, int):
-                        raise DiscordUserNotFound(system)
-                    
-                if response.status != 200: # catch-all
-                    raise HTTPError(response.status)
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(url)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 403:
+                raise AccessForbidden()
+            elif response.status_code == 404:
+                if isinstance(system, str):
+                    raise SystemNotFound(system)
+                elif isinstance(system, int):
+                    raise DiscordUserNotFound(system)
+                
+            if response.status_code != 200: # catch-all
+                raise HTTPError(response.status_code)
 
-                resp = await response.json()
+            resp = response.json()
 
-                for item in resp:
-                    member = Member.from_json(item)
+            for item in resp:
+                member = Member.from_json(item)
 
-                    yield member
+                yield member
     
     async def get_member(self, member_id: str) -> Member:
         """Gets a system member.
@@ -252,15 +248,17 @@ class Client:
 
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         """
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.get(f"{self.SERVER}/m/{member_id}", ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 200:
-                    item = await response.json()
-                    return Member.from_json(item)
-                else:
-                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(f"{self.SERVER}/m/{member_id}")
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 200:
+                item = response.json()
+                return Member.from_json(item)
+            else:
+                raise Exception(f"Something went wrong with your request. You received a "
+                        f"{response.status_code} http code, here is a list of possible http codes "
+                        "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
     async def new_member(self, **kwargs) -> Member:
         """Creates a new member of one's system.
@@ -327,15 +325,17 @@ class Client:
             raise Exception("Must have field 'name'")
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
-        async with aiohttp.ClientSession(headers=self.content_headers) as session:
-            async with session.post(f"{self.SERVER}/m/", data=json_payload, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError
-                elif response.status == 200:
-                    item = await response.json()
-                    return Member.from_json(item)
-                else:
-                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+        async with httpx.AsyncClient(headers=self.content_headers) as session:
+            response = await session.post(f"{self.SERVER}/m/", data=json_payload)
+            if response.status_code == 401:
+                raise AuthorizationError
+            elif response.status_code == 200:
+                item = response.json()
+                return Member.from_json(item)
+            else:
+                raise Exception(f"Something went wrong with your request. You received a "
+                        f"{response.status_code} http code, here is a list of possible http codes "
+                        "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
     async def edit_member(self, member_id: str, **kwargs) -> Member:
         """Edits a member of one's system.
@@ -404,15 +404,17 @@ class Client:
             kwargs = await member_value(kwargs=kwargs, key=key, value=value)
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
-        async with aiohttp.ClientSession(headers=self.content_headers) as session:
-            async with session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError
-                elif response.status == 200:
-                    item = await response.json()
-                    return Member.from_json(item)
-                else:
-                    raise Exception(f"Something went wrong with your request. You received a {response.status} http code, here is a list of possible http codes")
+        async with httpx.AsyncClient(headers=self.content_headers) as session:
+            response = await session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload)
+            if response.status_code == 401:
+                raise AuthorizationError
+            elif response.status_code == 200:
+                item = response.json()
+                return Member.from_json(item)
+            else:
+                raise Exception(f"Something went wrong with your request. You received a "
+                        f"{response.status_code} http code, here is a list of possible http codes "
+                        "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
         
     async def delete_member(self, member_id) -> None:
         """Deletes a member of one's system
@@ -428,16 +430,16 @@ class Client:
 
         url = f"{self.SERVER}/m/{member_id}"
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.delete(url, ssl=True) as response:
-                if response.status == 401:
-                    if response.status == 401:
-                        raise AuthorizationError()
-                    elif response.status == 403:
-                        raise AccessForbidden()
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.delete(url)
+            if response.status_code == 401:
+                if response.status_code == 401:
+                    raise AuthorizationError()
+                elif response.status_code == 403:
+                    raise AccessForbidden()
 
-                    if response.status != 204: # catch-all
-                        raise HTTPError(response.status)
+                if response.status_code != 204: # catch-all
+                    raise HTTPError(response.status_code)
 
     async def get_switches(self, system=None):
         """Fetches the switch history of a system.
@@ -451,7 +453,7 @@ class Client:
         
         if system is None:
             #Authorized system
-            await _check_self_id()
+            await self._check_self_id()
             system_url = f"/s/{self.id}"
         elif isinstance(system, System):
             # System object
@@ -462,26 +464,26 @@ class Client:
 
         url = f"{self.SERVER}{system_url}/switches"
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.get(url, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 403:
-                    raise AccessForbidden()
-                elif response.status == 404:
-                    if isinstance(system, str):
-                        raise SystemNotFound(system)
-                    elif isinstance(system, int):
-                        raise DiscordUserNotFound(system)
-                    
-                if response.status != 200: # catch-all
-                    raise HTTPError(response.status)
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(url)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 403:
+                raise AccessForbidden()
+            elif response.status_code == 404:
+                if isinstance(system, str):
+                    raise SystemNotFound(system)
+                elif isinstance(system, int):
+                    raise DiscordUserNotFound(system)
+                
+            if response.status_code != 200: # catch-all
+                raise HTTPError(response.status_code)
 
-                resp = await response.json()
+            resp = response.json()
 
-                for item in resp:
-                    switch = Switch.from_json(item)
-                    yield switch
+            for item in resp:
+                switch = Switch.from_json(item)
+                yield switch
 
     async def new_switch(self, members) -> Switch:
         """Creates a new switch
@@ -504,15 +506,15 @@ class Client:
         url = f"{self.SERVER}/s/switches"
         payload = json.dumps({"members": members}, ensure_ascii=False)
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.content_headers) as session:
-            async with session.post(url, data=payload, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 403:
-                    raise AccessForbidden()
-                    
-                if response.status != 204: # catch-all
-                    raise HTTPError(response.status)
+        async with httpx.AsyncClient(headers=self.content_headers) as session:
+            response = await session.post(url, data=payload)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 403:
+                raise AccessForbidden()
+                
+            if response.status_code != 204: # catch-all
+                raise HTTPError(response.status_code)
     
     async def get_message(self, message: Union[str, int, Message]) -> Message:
         """Fetches a message proxied by pluralkit
@@ -530,15 +532,15 @@ class Client:
         elif isinstance(message, Message):
             url = f"{self.SERVER}/msg/{message.id}"
 
-        async with aiohttp.ClientSession(trace_configs=None, headers=self.headers) as session:
-            async with session.get(url, ssl=True) as response:
-                if response.status == 401:
-                    raise AuthorizationError()
-                elif response.status == 403:
-                    raise AccessForbidden()
-                if response.status != 200: # catch-all
-                    raise HTTPError(response.status)
-                else:
-                    resp = await response.json()
-                    
-                    return Message.from_json(resp)
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            response = await session.get(url)
+            if response.status_code == 401:
+                raise AuthorizationError()
+            elif response.status_code == 403:
+                raise AccessForbidden()
+            if response.status_code != 200: # catch-all
+                raise HTTPError(response.status_code)
+            else:
+                resp = response.json()
+                
+                return Message.from_json(resp)
