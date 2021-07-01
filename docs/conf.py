@@ -12,8 +12,8 @@
 #
 import os
 import sys
-sys.path.append(os.path.abspath("../.."))
-sys.path.append(os.path.abspath("../../pluralkit/v1"))
+sys.path.append(os.path.abspath(".."))
+sys.path.append(os.path.abspath("../pluralkit/v1"))
 sys.path.insert(0, os.path.abspath(".."))
 from pluralkit import __version__
 from datetime import datetime
@@ -27,11 +27,9 @@ author = "Madison Landry, Alyx Warner"
 # The full version
 release = __version__
 
-print(f"Building docs for {project} v{release} !")
+print(f"Building docs for: {project} v{release}")
 
 # -- General configuration ---------------------------------------------------
-
-master_doc = "source/index"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
@@ -81,8 +79,8 @@ html_theme_options = {
 }
 
 html_title = f"{project} v{release} docs"
-html_logo = "images/pluralkit_py_logo.png"
-html_favicon = "images/pluralkit_py_logo.png"
+html_logo = "source/images/pluralkit_py_logo.png"
+html_favicon = "source/images/pluralkit_py_logo.png"
 show_navbar_depth = 3
 
 # Add any paths that contain custom static files (such as style sheets) here,

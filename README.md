@@ -35,7 +35,7 @@ The client can be used without one's [PluralKit authorization token](https://plu
 ## Links
 
 * [PyPI link](https://pypi.org/project/pluralkit/)
-* [Latest build of the docs](https://web.mit.edu/almonds/www/pk.py/index.html)
+* [Latest build of the docs](https://pluralkit.readthedocs.io/en/latest/)
 * [pluralkit.py Discord support server](https://discord.gg/secvguatbC)
 * [PluralKit support server](https://discord.gg/PczBt78)
 * [PluralKit's API](https://pluralkit.me/)

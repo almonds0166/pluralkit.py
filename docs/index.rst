@@ -21,9 +21,9 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   api
-   quickstart
-   changelog
+   source/api
+   source/quickstart
+   source/changelog
 
 Links
 -----
