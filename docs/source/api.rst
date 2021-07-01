@@ -79,17 +79,19 @@ Enumerations
 Privacy
 ~~~~~~~
 
-.. attribute:: Privacy.PUBLIC
+.. autoclass:: Privacy
 
-   Represents a public PluralKit privacy setting.
+   .. autoattribute:: Privacy.PUBLIC
 
-.. attribute:: Privacy.PRIVATE
+      Represents a public PluralKit privacy setting.
 
-   Represents a private PluralKit privacy setting.
+   .. autoattribute:: Privacy.PRIVATE
 
-.. attribute:: Privacy.UNKNOWN
+      Represents a private PluralKit privacy setting.
 
-   Equivalent to `Privacy.PUBLIC` in effect. Returned for member and system privacy fields if the client does not have an authorization token set.
+   .. autoattribute:: Privacy.UNKNOWN
+
+      Equivalent to `Privacy.PUBLIC` in effect. Returned for member and system privacy fields if the client does not have an authorization token set.
 
 Exceptions
 ----------

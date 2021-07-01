@@ -12,7 +12,7 @@ with open("README.md", "r") as fh:
 setup(
    name="pluralkit",
    version=__version__,
-   description="Asynchronous Python wrapper for PluralKit's API.",
+   description="Python wrapper for PluralKit's API.",
    license="MIT",
    py_modules=["pluralkit"],
    classifiers=[ # https://pypi.org/classifiers/
@@ -33,9 +33,9 @@ setup(
    long_description=long_description,
    long_description_content_type="text/markdown",
    install_requires=[
-      "aiohttp>=3.7.4",
-      "colour>=0.1.5",
-      "pytz>=2021.1",
+      "httpx==0.18.2", # https://www.python-httpx.org/
+      "colour>=0.1",
+      "pytz>=2021",
    ],
    extras_require = {
       "dev": [

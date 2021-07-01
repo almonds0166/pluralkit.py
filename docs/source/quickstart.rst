@@ -30,6 +30,12 @@ For `virtual environments`_, use pip like usual: ::
 
 .. _`virtual environments`: https://docs.python.org/3/tutorial/venv.html
 
+To install the unstable version: ::
+
+   git clone https://github.com/almonds0166/pluralkit.py
+   cd pluralkit.py
+   pip install -U .
+
 Basic concepts
 --------------
 
@@ -38,28 +44,41 @@ pluralkit.py uses the `Client` class to coordinate with `PluralKit's API`_ and a
 Client
 ~~~~~~
 
-Currently, the client is meant to be used asynchronously, similar to `discord.py`_.
-
-Below is an example script that simply prints one's system members, given one's :ref:`authorization token <token>`.
+Below is an async example script that prints one's system members and system description, given one's :ref:`authorization token <token>`.
 
 .. code-block:: python
 
-   import asyncio
    from pluralkit import Client
-
-   async def main(pk):
-      async for member in pk.get_members():
-         print(f"{member.name} (`{member.id}`)")
 
    pk = Client("token") # your token here
 
-   loop = asyncio.get_event_loop()
-   loop.run_until_complete(main(pk))
+   async for member in pk.get_members():
+      print(f"{member.name} (`{member.id}`)")
 
-.. _`discord.py`: https://discordpy.readthedocs.io/en/stable/
-.. _`PluralKit's API`: https://pluralkit.me/
+   system = await pk.get_system()
+   print(system.description)
 
-For good practice, the User-Agent header may also be set with the argument ``user_agent``.
+.. note::
+
+   By default, the client is meant for asynchronous use; for example, to be paired with `discord.py`_.
+
+Use the ``async_mode=False`` argument for blocking execution:
+
+.. code-block:: python
+
+   from pluralkit import Client
+
+   pk = Client("token", async_mode=False) # your token here
+
+   for member in pk.get_members():
+      print(f"{member.name} (`{member.id}`)")
+
+   system = pk.get_system()
+   print(system.description)
+
+For demonstration purposes, we'll use the synchronous version of the client on this page.
+
+The User-Agent header may be set with the argument ``user_agent``.
 
 See here for the documentation of the most common Client methods:
 
@@ -74,6 +93,9 @@ See here for the documentation of the most common Client methods:
 - `Client.get_system`
 - `Client.new_member`
 - `Client.new_switch`
+
+.. _`discord.py`: https://discordpy.readthedocs.io/en/stable/
+.. _`PluralKit's API`: https://pluralkit.me/
 
 .. _token:
 
@@ -128,15 +150,11 @@ System
 
 `System` models are returned by the Client methods `Client.get_system` and `Client.edit_system` as well as the `Message.system` attribute. For example::
 
-   >>> import asyncio
    >>> from pluralkit import Client
-   >>> async def main():
-   ...   return await pk.get_system("abcde")
-   ...
-   >>> pk = Client()
-   >>> system = asyncio.run(main())
+   >>> pk = Client(async_mode=False)
+   >>> system = pk.get_system("abcde")
    >>> system
-   System(abcde)
+   System('abcde')
 
 Note, as of writing, there is no system with ID ``abcde``, this is just for the sake of example.
 
@@ -161,12 +179,9 @@ Member
 
 `Member` models are returned by the Client methods `Client.new_member`, `Client.get_member`, `Client.get_members`, and `Client.edit_member` as well as the `Message.member` attribute. For example: ::
 
-   >>> async def main():
-   ...   return await pk.get_system("fghij")
-   ...
-   >>> member = asyncio.run(main())
+   >>> member = pk.get_member("fghij")
    >>> member
-   Member(fghij)
+   Member('fghij')
 
 Note, as of writing, there is no system with ID ``fghij``, this is just for the sake of example.
 
@@ -206,10 +221,7 @@ Message
 
 `Message` models are returned by the Client method `Client.get_message`. For example: ::
 
-   >>> async def main():
-   ...   return await pk.get_message(859884066302984221)
-   ...
-   >>> msg = asyncio.run(main())
+   >>> msg = pk.get_message(859884066302984221)
    >>> msg
    Message(859884066302984221)
 
@@ -258,9 +270,9 @@ ProxyTag
    >>> pt = member.proxy_tags[0]
    >>> pt
    ProxyTag(prefix='Test:')
-   >>> 
 
 Each ProxyTag object has an optional `~ProxyTag.prefix` and `~ProxyTag.suffix` attribute: ::
+
    >>> print(pt.prefix)
    Test:
    >>> pt.suffix is None
@@ -331,7 +343,7 @@ Timestamp objects always represent UTC time, and the underlying `datetime.dateti
 Birthday
 ^^^^^^^^
 
-`Birthday` objects inherit from `Timestamp` objects and are initialized in the same way.
+`Birthday` objects inherit from `Timestamp` objects and can be initialized in the same way. Shown below is the keyword argument method.
 
    >>> from pluralkit import Birthday
    >>> bd = Birthday(year=2021, month=6, day=26)
@@ -357,8 +369,8 @@ Timezone
    >>> from pluralkit import Timezone
    >>> Timezone("UTC")
    Timezone<UTC>
-   >>> timezone = Timezone("America/Los_Angeles")
-   >>> timezone
+   >>> tz = Timezone("America/Los_Angeles")
+   >>> tz
    Timezone<America/Los_Angeles>
 
 The `pytz.tzinfo` object may be accessed by `Timezone.tz`.

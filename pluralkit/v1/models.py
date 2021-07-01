@@ -181,12 +181,15 @@ class Timestamp:
             )
 
         if dt is not None:
-            self.datetime = dt.astimezone(pytz.utc)
+            if dt.tzinfo is not None:
+                self.datetime = dt.astimezone(pytz.utc)
+            else:
+                self.datetime = dt.replace(tzinfo=pytz.utc)
 
         else:
             # mypy complains here
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
-            self.datetime = self.datetime.astimezone(pytz.utc)
+            self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.json()}>"
@@ -562,7 +565,7 @@ class System:
         self.front_history_privacy = Privacy(front_history_privacy)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.id})"
+        return f"{self.__class__.__name__}('{self.id}')"
 
     def __str__(self):
         return self.id
@@ -715,7 +718,7 @@ class Member:
         self.visibility = Privacy(visibility)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.id})"
+        return f"{self.__class__.__name__}('{self.id}')"
 
     def __str__(self):
         return self.id

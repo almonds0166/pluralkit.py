@@ -1,31 +1,57 @@
 # pluralkit.py
 
-Asynchronous Python wrapper for [PluralKit](https://pluralkit.me/)'s API. Created with [discord.py](https://github.com/Rapptz/discord.py) in mind.
+Asynchronous Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
 
-Currently working on PluralKit's v1.0 API.
-
-## Quick example
-
-```python
-from pluralkit import Client
-
-pk = Client()
-
-async for member in pk.get_members("abcde"):
-   # list members of the system with ID ``abcde``
-   print(f"{member.name} (`{member.id}`)")
-```
+Currently supports PluralKit's v1.0 API.
 
 ## Installing
 
 Python 3.6 or higher is required.
 
 ```bash
-# linux/MacOS
+# linux/macOS
 python3 -m pip install -U pluralkit
 
 # windows
 py -3 -m pip install -U pluralkit
+```
+
+## Quick examples
+
+Provided a system's authorization token, the examples below print the system description and list the system's members.
+
+### Async usage
+
+pluralkit.py was created with [discord.py](https://github.com/Rapptz/discord.py) in mind, and so the default implementation is [asynchronous](https://docs.python.org/3/library/asyncio-task.html).
+
+```python
+from pluralkit import Client
+
+pk = Client("token") # your token here
+
+system = await pk.get_system()
+print(system.description)
+
+members = pk.get_members()
+async for member in members:
+   print(f"{member.name} (`{member.id}`)")
+```
+
+### Synchronous usage
+
+Blocking execution may be specified with the client argument `async_mode=False`.
+
+```python
+from pluralkit import Client
+
+pk = Client("token", async_mode=False)
+
+system = pk.get_system()
+print(system.description)
+
+members = pk.get_members()
+for member in members:
+   print(f"{member.name} (`{member.id}`)")
 ```
 
 ## Token

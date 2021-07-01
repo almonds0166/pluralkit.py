@@ -14,27 +14,38 @@ from http.client import responses as RESPONSE_CODES
 from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
 from .utils import *
+from . import endpoint
 
 class Client:
     """Represents a client that interacts with the PluralKit API.
 
     Args:
         token: The PluralKit authorization token, received by the ``pk;token`` command.
+
+    Keyword args:
+        async_mode: Whether the client runs asynchronously (``True``, default) or not (``False``).
         user_agent: The User-Agent header to use with the API.
 
     Attributes:
         token (Optional[str]): The client's PluralKit authorization token.
+        async_mode (bool): Whether the client runs asynchronously (``True``) or not (``False``).
         user_agent (Optional[str]): The User-Agent header used with the API.
+        headers (Dict[str,str]): 
+        content_headers (Dict[str,str]): 
     """
 
     SERVER = "https://api.pluralkit.me/v1"
 
-    def __init__(self, async_: bool=True, token: Optional[str]=None, user_agent: Optional[str]=None):
-        self.async_mode = async_
+    def __init__(self, token: Optional[str]=None, *,
+        async_mode: bool=True,
+        user_agent: Optional[str]=None
+    ):
+        self.async_mode = async_mode
         self.token = token
-        self.headers = { }
+        self.headers = {}
         if token:
             self.headers["Authorization"] = token
+        self.user_agent = user_agent
         if user_agent:
             self.headers["User-Agent"] = user_agent
         self.content_headers = self.headers.copy()
@@ -49,11 +60,11 @@ class Client:
 
     async def _check_self_id(self):
         if self._id is None:
-            system = await self.get_system()
+            system = await self._get_system()
             self._id = system.id
     
     @staticmethod
-    def _get_system_url(self, system):
+    def _get_system_url(self, system) -> str:
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
@@ -70,6 +81,7 @@ class Client:
 
         return url
 
+    @endpoint.func
     async def get_system(self, system: Union[System,str,int,None]=None) -> System:
         """Return a system by its system ID or Discord user ID.
 
@@ -106,6 +118,7 @@ class Client:
 
             return system
     
+    @endpoint.func
     async def edit_system(self, **kwargs) -> System:
         """"Edits one's own system
         
@@ -154,7 +167,8 @@ class Client:
 
             return system
 
-    async def get_fronters(self, system=None):
+    @endpoint.func
+    async def get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
         """Fetches the current fronters of a system.
         
         Args:
@@ -189,6 +203,7 @@ class Client:
                 timestamp = Timestamp.from_json(resp['timestamp'])
                 return (timestamp, member_list)
 
+    @endpoint.iter
     async def get_members(self, system: Union[System,str,int,None]=None):
         """Retrieve list of a system's members.
 
@@ -212,7 +227,7 @@ class Client:
             url = f"{self.SERVER}/s/{system}/members"
         elif isinstance(system, int):
             # Discord user ID
-            system = await self.get_system(system)
+            system = await self._get_system(system)
             url = f"{self.SERVER}/s/{system.id}/members"
 
         async with httpx.AsyncClient(headers=self.headers) as session:
@@ -237,6 +252,7 @@ class Client:
 
                 yield member
     
+    @endpoint.func
     async def get_member(self, member_id: str) -> Member:
         """Gets a system member.
 
@@ -260,6 +276,7 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
+    @endpoint.func
     async def new_member(self, **kwargs) -> Member:
         """Creates a new member of one's system.
 
@@ -337,6 +354,7 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
+    @endpoint.func
     async def edit_member(self, member_id: str, **kwargs) -> Member:
         """Edits a member of one's system.
 
@@ -416,6 +434,7 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
         
+    @endpoint.func
     async def delete_member(self, member_id) -> None:
         """Deletes a member of one's system
         
@@ -441,6 +460,7 @@ class Client:
                 if response.status_code != 204: # catch-all
                     raise HTTPError(response.status_code)
 
+    @endpoint.iter
     async def get_switches(self, system=None):
         """Fetches the switch history of a system.
         
@@ -485,6 +505,7 @@ class Client:
                 switch = Switch.from_json(item)
                 yield switch
 
+    @endpoint.func
     async def new_switch(self, members) -> Switch:
         """Creates a new switch
         
@@ -516,6 +537,7 @@ class Client:
             if response.status_code != 204: # catch-all
                 raise HTTPError(response.status_code)
     
+    @endpoint.func
     async def get_message(self, message: Union[str, int, Message]) -> Message:
         """Fetches a message proxied by pluralkit
         

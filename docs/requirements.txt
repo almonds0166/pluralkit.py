@@ -1,4 +1,4 @@
-aiohttp==3.7.4.post0
+httpx==0.18.2
 colour==0.1.5
 pytz==2021.1
 Sphinx==3.5.4
