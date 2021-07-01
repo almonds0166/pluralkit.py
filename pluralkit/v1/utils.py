@@ -77,7 +77,7 @@ async def member_value(kwargs, key, value):
             kwargs[key] = value.value # convert Privacy enum to strt
     elif key == "avatar_url":
         async with httpx.AsyncClient() as session:
-            reponse = session.head(value, ssl=True)
+            response = session.head(value)
             code = response.status_code
             if code != 200:
                 raise ValueError(
