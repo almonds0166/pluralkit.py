@@ -7,7 +7,7 @@ from typing import (
 import datetime
 from http.client import responses as RESPONSE_CODES
 
-import aiohttp
+import httpx
 import colour
 import pytz
 
@@ -74,15 +74,15 @@ async def member_value(kwargs, key, value):
                 f"instead was {value=}."
             )
         if value in Privacy:
-            kwargs[key] = value.value # convert Privacy enum to str
+            kwargs[key] = value.value # convert Privacy enum to strt
     elif key == "avatar_url":
-        async with aiohttp.ClientSession() as session:
-            async with session.head(value, ssl=True) as response:
-                code = response.status
-                if code != 200:
-                    raise ValueError(
-                        f"Invalid URL passed. Received {code} {RESPONSE_CODES[code]}."
-                    )
+        async with httpx.AsyncClient() as session:
+            reponse = session.head(value, ssl=True)
+            code = response.status_code
+            if code != 200:
+                raise ValueError(
+                    f"Invalid URL passed. Received {code} {RESPONSE_CODES[code]}."
+                )
     elif key == "proxy_tags":
         proxy_tags = []
         for proxy_tag in value:
