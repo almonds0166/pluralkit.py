@@ -38,7 +38,8 @@ async def main():
    async for member in members:
       print(f"{member.name} (`{member.id}`)")
 
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
 ```
 
 ### Synchronous usage

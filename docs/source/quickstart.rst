@@ -60,7 +60,8 @@ Below is an async example script that prints one's system members and system des
       async for member in members:
          print(f"{member.name} (`{member.id}`)")
 
-   asyncio.run(main())
+   loop = asyncio.get_event_loop()
+   loop.run_until_complete(main())
 
 .. note::
 
