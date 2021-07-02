@@ -216,7 +216,8 @@ class Client:
             elif isinstance(system, int):
                 # Discord user ID
 
-                system = System.from_json(await session.get(f"https://api.pluralkit.me/v1/a/{system}"))
+                system_info = await session.get(f"https://api.pluralkit.me/v1/a/{system}")
+                system = System.from_json(system_info.json())
                 url = f"{self.SERVER}/s/{system.id}/members"
 
             response = await session.get(url)
