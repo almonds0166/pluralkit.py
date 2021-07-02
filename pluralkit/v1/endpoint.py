@@ -11,10 +11,9 @@ def func(f):
 
       # save an asynchronous copy! if not yet saved
       async_name = "_" + f.__name__
-      try:
-         getattr(self, async_name)
-      except AttributeError:
+      if async_name not in self._async:
          setattr(self, async_name, f)
+         self._async.add(async_name)
 
       awaitable = f(*args, **kwargs)
       if self.async_mode:
@@ -35,10 +34,9 @@ def iter(f):
 
       # save an asynchronous copy! if not yet saved
       async_name = "_" + f.__name__
-      try:
-         getattr(self, async_name)
-      except AttributeError:
+      if async_name not in self._async:
          setattr(self, async_name, f)
+         self._async.add(async_name)
 
       awaitable = f(*args, **kwargs)
       if self.async_mode:

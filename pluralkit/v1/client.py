@@ -41,27 +41,23 @@ class Client:
         user_agent: Optional[str]=None
     ):
         self.async_mode = async_mode
+        self._async = set()
         self.token = token
         self.headers = {}
+        self.id = None
         if token:
             self.headers["Authorization"] = token
+            if async_mode:
+                loop = asyncio.get_event_loop()
+                system = loop.run_until_complete(self.get_system())
+            else:
+                system = self.get_system()
+            self.id = system.id
         self.user_agent = user_agent
         if user_agent:
             self.headers["User-Agent"] = user_agent
         self.content_headers = self.headers.copy()
         self.content_headers['Content-Type'] = "application/json"
-        self._id = None
-
-    @property
-    def id(self) -> Optional[str]:
-        """The five-letter lowercase PluralKit system ID of this client, if initialized.
-        """
-        return self._id
-
-    async def _check_self_id(self):
-        if self._id is None:
-            system = await self._get_system()
-            self._id = system.id
     
     @staticmethod
     def _get_system_url(self, system) -> str:
@@ -180,7 +176,6 @@ class Client:
         """
         
         if system is None: 
-            await self._check_self_id()
             url = f"{self.SERVER}/s/{self.id}/fronters"
         elif isinstance(system, str):
             url = f"{self.SERVER}/s/{system}/fronters"
@@ -217,7 +212,6 @@ class Client:
 
         if system is None:
             # get own system
-            await self._check_self_id()
             url = f"{self.SERVER}/s/{self.id}/members"
         elif isinstance(system, System):
             # System object
@@ -473,7 +467,6 @@ class Client:
         
         if system is None:
             #Authorized system
-            await self._check_self_id()
             system_url = f"/s/{self.id}"
         elif isinstance(system, System):
             # System object
