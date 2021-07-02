@@ -18,3 +18,4 @@ push-pypi.bat
 update_reqs.*
 tmp.*
 temp.*
+main.py

@@ -58,9 +58,19 @@ class Client:
             self.headers["User-Agent"] = user_agent
         self.content_headers = self.headers.copy()
         self.content_headers['Content-Type'] = "application/json"
-    
-    @staticmethod
-    def _get_system_url(self, system) -> str:
+
+    @endpoint.func
+    async def get_system(self, system: Union[System,str,int,None]=None) -> System:
+        """Return a system by its system ID or Discord user ID.
+
+        Args:
+            system: The system ID (as `str`), Discord user ID (as `int`), or `~v1.models.System`
+                object of the system. If ``None``, returns the system of the client.
+
+        Returns:
+            System: The retrieved system.
+        """
+
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
@@ -74,22 +84,6 @@ class Client:
         elif isinstance(system, int):
             # Discord user ID
             url = f"{self.SERVER}/a/{system}"
-
-        return url
-
-    @endpoint.func
-    async def get_system(self, system: Union[System,str,int,None]=None) -> System:
-        """Return a system by its system ID or Discord user ID.
-
-        Args:
-            system: The system ID (as `str`), Discord user ID (as `int`), or `~v1.models.System`
-                object of the system. If ``None``, returns the system of the client.
-
-        Returns:
-            System: The retrieved system.
-        """
-        url = Client._get_system_url(self, system)
-
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -209,22 +203,23 @@ class Client:
         Yields:
             Member: The next system member.
         """
-
-        if system is None:
-            # get own system
-            url = f"{self.SERVER}/s/{self.id}/members"
-        elif isinstance(system, System):
-            # System object
-            url = f"{self.SERVER}/s/{system.id}/members"
-        elif isinstance(system, str):
-            # system ID
-            url = f"{self.SERVER}/s/{system}/members"
-        elif isinstance(system, int):
-            # Discord user ID
-            system = await self._get_system(system)
-            url = f"{self.SERVER}/s/{system.id}/members"
-
         async with httpx.AsyncClient(headers=self.headers) as session:
+            if system is None:
+                # get own system
+                url = f"{self.SERVER}/s/{self.id}/members"
+            elif isinstance(system, System):
+                # System object
+                url = f"{self.SERVER}/s/{system.id}/members"
+            elif isinstance(system, str):
+                # system ID
+                url = f"{self.SERVER}/s/{system}/members"
+            elif isinstance(system, int):
+                # Discord user ID
+
+                system_info = await session.get(f"https://api.pluralkit.me/v1/a/{system}")
+                system = System.from_json(system_info.json())
+                url = f"{self.SERVER}/s/{system.id}/members"
+
             response = await session.get(url)
             if response.status_code == 401:
                 raise AuthorizationError()
