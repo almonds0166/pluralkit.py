@@ -1,6 +1,6 @@
 # pluralkit.py
 
-Asynchronous Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
+Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
 
 Currently supports PluralKit's v1.0 API.
 

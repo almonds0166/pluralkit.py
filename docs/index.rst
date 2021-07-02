@@ -8,7 +8,7 @@
 Welcome to pluralkit.py's documentation!
 ========================================
 
-**pluralkit.py** is an asynchronous Python wrapper for `PluralKit's API`_ created with `discord.py`_ in mind.
+**pluralkit.py** is a Python wrapper for `PluralKit's API`_ created with `discord.py`_ in mind.
 
 If visiting here for the first time, check out :ref:`the Getting Started page <getting_started>`!
 
