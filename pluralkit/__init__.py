@@ -20,8 +20,8 @@ from .v1 import errors
 VersionInfo = namedtuple("VersionInfo", "major minor build")
 version_info = VersionInfo(
     major=0,
-    minor=1,
-    build=1,
+    minor=0,
+    build=6,
 )
 
 __title__ = "pluralkit"

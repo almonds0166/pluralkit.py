@@ -1,5 +1,5 @@
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from pluralkit import __version__
 
@@ -14,7 +14,7 @@ setup(
    version=__version__,
    description="Python wrapper for PluralKit's API.",
    license="MIT",
-   py_modules=["pluralkit"],
+   packages=find_packages(),
    classifiers=[ # https://pypi.org/classifiers/
       "Development Status :: 3 - Alpha",
       "Programming Language :: Python :: 3.6", # f-strings
