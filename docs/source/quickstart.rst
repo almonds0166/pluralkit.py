@@ -47,16 +47,20 @@ Client
 Below is an async example script that prints one's system members and system description, given one's :ref:`authorization token <token>`.
 
 .. code-block:: python
-
    from pluralkit import Client
+   import asyncio
 
    pk = Client("token") # your token here
 
-   async for member in pk.get_members():
-      print(f"{member.name} (`{member.id}`)")
+   async def main():
+      system = await pk.get_system()
+      print(system.description)
 
-   system = await pk.get_system()
-   print(system.description)
+      members = pk.get_members()
+      async for member in members:
+         print(f"{member.name} (`{member.id}`)")
+
+   asyncio.run(main())
 
 .. note::
 

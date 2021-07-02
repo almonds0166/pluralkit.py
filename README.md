@@ -26,15 +26,19 @@ pluralkit.py was created with [discord.py](https://github.com/Rapptz/discord.py)
 
 ```python
 from pluralkit import Client
+import asyncio
 
 pk = Client("token") # your token here
 
-system = await pk.get_system()
-print(system.description)
+async def main():
+   system = await pk.get_system()
+   print(system.description)
 
-members = pk.get_members()
-async for member in members:
-   print(f"{member.name} (`{member.id}`)")
+   members = pk.get_members()
+   async for member in members:
+      print(f"{member.name} (`{member.id}`)")
+
+asyncio.run(main())
 ```
 
 ### Synchronous usage
