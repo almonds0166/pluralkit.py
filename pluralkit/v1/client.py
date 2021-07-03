@@ -3,6 +3,7 @@ from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
+    Awaitable, AsyncGenerator, Coroutine,
 )
 
 import asyncio
@@ -14,7 +15,8 @@ from http.client import responses as RESPONSE_CODES
 from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
 from .utils import *
-from . import endpoint
+
+SERVER = "https://api.pluralkit.me/v1"
 
 class Client:
     """Represents a client that interacts with the PluralKit API.
@@ -32,16 +34,15 @@ class Client:
         user_agent (Optional[str]): The User-Agent header used with the API.
         headers (Dict[str,str]): 
         content_headers (Dict[str,str]): 
+        id (Optional[str]): The five-letter lowercase ID of one's system if an authorization token
+            is provided.
     """
-
-    SERVER = "https://api.pluralkit.me/v1"
 
     def __init__(self, token: Optional[str]=None, *,
         async_mode: bool=True,
         user_agent: Optional[str]=None
     ):
         self.async_mode = async_mode
-        self._async = set()
         self.token = token
         self.headers = {}
         self.id = None
@@ -49,7 +50,7 @@ class Client:
             self.headers["Authorization"] = token
             if async_mode:
                 loop = asyncio.get_event_loop()
-                system = loop.run_until_complete(self.get_system())
+                system = loop.run_until_complete(self._get_system())
             else:
                 system = self.get_system()
             self.id = system.id
@@ -59,8 +60,8 @@ class Client:
         self.content_headers = self.headers.copy()
         self.content_headers['Content-Type'] = "application/json"
 
-    @endpoint.func
-    async def get_system(self, system: Union[System,str,int,None]=None) -> System:
+    def get_system(self, system: Union[System,str,int,None]=None) \
+    -> Union[System, Coroutine[Any,Any,System]]:
         """Return a system by its system ID or Discord user ID.
 
         Args:
@@ -70,20 +71,28 @@ class Client:
         Returns:
             System: The retrieved system.
         """
+        awaitable = self._get_system(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
+    async def _get_system(self, system: Union[System,str,int,None]=None) -> System:
         if system is None:
             if not self.token: raise AuthorizationError() # please pass in your token to the client
             # get own system
-            url = f"{self.SERVER}/s"
+            url = f"{SERVER}/s"
         elif isinstance(system, System):
             # System object
-            url = f"{self.SERVER}/s/{system.id}"
+            url = f"{SERVER}/s/{system.id}"
         elif isinstance(system, str):
             # system ID
-            url = f"{self.SERVER}/s/{system}"
+            url = f"{SERVER}/s/{system}"
         elif isinstance(system, int):
             # Discord user ID
-            url = f"{self.SERVER}/a/{system}"
+            url = f"{SERVER}/a/{system}"
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -102,14 +111,9 @@ class Client:
 
             system = System.from_json(resp)
 
-            if url.endswith("/s"):
-                # remember self ID for the future
-                self._id = system.id
-
             return system
     
-    @endpoint.func
-    async def edit_system(self, **kwargs) -> System:
+    def edit_system(self, **kwargs) -> Union[System, Coroutine[Any,Any,System]]:
         """"Edits one's own system
         
         Note:
@@ -135,7 +139,15 @@ class Client:
 
         .. _`PluralKit's system model`: https://pluralkit.me/api/#system-model
         """
+        awaitable = self._edit_system(**kwargs)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
+    async def _edit_system(self, **kwargs) -> System:
         if self.token is None:
             raise AuthorizationError()
 
@@ -157,24 +169,31 @@ class Client:
 
             return system
 
-    @endpoint.func
-    async def get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
+    def get_fronters(self, system=None) \
+    -> Union[Tuple[Timestamp, List[Member]], Coroutine[Any,Any,Tuple[Timestamp, List[Member]]]]:
         """Fetches the current fronters of a system.
         
         Args:
             system(Optional[Union[str, System]]): The system to fetch fronters from.
         
         Returns:
-            Set(Timestamp, List[Member]): A set containing a Timestamp object and a list of current
-            fronters in Member objects
+            Tuple[Timestamp, List[Member]]: The Timestamp object and the list of current fronters.
         """
-        
+        awaitable = self._get_fronters(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    async def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
         if system is None: 
-            url = f"{self.SERVER}/s/{self.id}/fronters"
+            url = f"{SERVER}/s/{self.id}/fronters"
         elif isinstance(system, str):
-            url = f"{self.SERVER}/s/{system}/fronters"
+            url = f"{SERVER}/s/{system}/fronters"
         elif isinstance(system, System):
-            url = f"{self.SERVER}/s/{system.id}/fronters"
+            url = f"{SERVER}/s/{system.id}/fronters"
         
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -192,8 +211,8 @@ class Client:
                 timestamp = Timestamp.from_json(resp['timestamp'])
                 return (timestamp, member_list)
 
-    @endpoint.iter
-    async def get_members(self, system: Union[System,str,int,None]=None):
+    def get_members(self, system: Union[System,str,int,None]=None
+    ) -> Union[List[Member], AsyncGenerator[Member,None]]:
         """Retrieve list of a system's members.
 
         Args:
@@ -203,22 +222,32 @@ class Client:
         Yields:
             Member: The next system member.
         """
+        awaitable = self._get_members(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(flatten(awaitable))
+            return result
+
+    async def _get_members(self, system: Union[System,str,int,None]=None) \
+    -> AsyncGenerator[Member,None]:
         async with httpx.AsyncClient(headers=self.headers) as session:
             if system is None:
                 # get own system
-                url = f"{self.SERVER}/s/{self.id}/members"
+                url = f"{SERVER}/s/{self.id}/members"
             elif isinstance(system, System):
                 # System object
-                url = f"{self.SERVER}/s/{system.id}/members"
+                url = f"{SERVER}/s/{system.id}/members"
             elif isinstance(system, str):
                 # system ID
-                url = f"{self.SERVER}/s/{system}/members"
+                url = f"{SERVER}/s/{system}/members"
             elif isinstance(system, int):
                 # Discord user ID
 
                 system_info = await session.get(f"https://api.pluralkit.me/v1/a/{system}")
                 system = System.from_json(system_info.json())
-                url = f"{self.SERVER}/s/{system.id}/members"
+                url = f"{SERVER}/s/{system.id}/members"
 
             response = await session.get(url)
             if response.status_code == 401:
@@ -241,8 +270,7 @@ class Client:
 
                 yield member
     
-    @endpoint.func
-    async def get_member(self, member_id: str) -> Member:
+    def get_member(self, member_id: str) -> Union[Member, Coroutine[Any,Any,Member]]:
         """Gets a system member.
 
         Args:
@@ -253,20 +281,30 @@ class Client:
 
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         """
+        awaitable = self._get_member(member_id)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    async def _get_member(self, member_id: str) -> Member:
         async with httpx.AsyncClient(headers=self.headers) as session:
-            response = await session.get(f"{self.SERVER}/m/{member_id}")
+            response = await session.get(f"{SERVER}/m/{member_id}")
             if response.status_code == 401:
                 raise AuthorizationError()
             elif response.status_code == 200:
                 item = response.json()
                 return Member.from_json(item)
+            elif response.status_code == 404:
+                raise MemberNotFound(member_id)
             else:
                 raise Exception(f"Something went wrong with your request. You received a "
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
-    @endpoint.func
-    async def new_member(self, **kwargs) -> Member:
+    def new_member(self, **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
         """Creates a new member of one's system.
 
         Note:
@@ -319,6 +357,15 @@ class Client:
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
+        awaitable = self._new_member(**kwargs)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    async def _new_member(self, **kwargs) -> Member:
         #Finish editing this so it makes sense in the context it's in
         if self.token is None:
             raise AuthorizationError()
@@ -332,7 +379,7 @@ class Client:
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.post(f"{self.SERVER}/m/", data=json_payload)
+            response = await session.post(f"{SERVER}/m/", data=json_payload)
             if response.status_code == 401:
                 raise AuthorizationError
             elif response.status_code == 200:
@@ -343,8 +390,7 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
-    @endpoint.func
-    async def edit_member(self, member_id: str, **kwargs) -> Member:
+    def edit_member(self, member_id: str, **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
         """Edits a member of one's system.
 
         Note:
@@ -404,6 +450,7 @@ class Client:
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
 
+    async def _edit_member(self, member_id: str, **kwargs) -> Member:
         if self.token is None:
             raise AuthorizationError()
         
@@ -412,7 +459,7 @@ class Client:
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.patch(f"{self.SERVER}/m/{member_id}", data=json_payload)
+            response = await session.patch(f"{SERVER}/m/{member_id}", data=json_payload)
             if response.status_code == 401:
                 raise AuthorizationError
             elif response.status_code == 200:
@@ -422,9 +469,8 @@ class Client:
                 raise Exception(f"Something went wrong with your request. You received a "
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
-        
-    @endpoint.func
-    async def delete_member(self, member_id) -> None:
+    
+    def delete_member(self, member_id: str) -> Union[None, Coroutine[Any,Any,None]]:
         """Deletes a member of one's system
         
         Note:
@@ -435,8 +481,16 @@ class Client:
 
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
+        awaitable = self._delete_member(member_id)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
-        url = f"{self.SERVER}/m/{member_id}"
+    async def _delete_member(self, member_id: str) -> None:
+        url = f"{SERVER}/m/{member_id}"
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.delete(url)
@@ -449,17 +503,24 @@ class Client:
                 if response.status_code != 204: # catch-all
                     raise HTTPError(response.status_code)
 
-    @endpoint.iter
-    async def get_switches(self, system=None):
+    def get_switches(self, system=None) -> Union[List[Switch], AsyncGenerator[Switch,None]]:
         """Fetches the switch history of a system.
         
         Args:
             system (Optional[Union[str, System]])
             
         Yields:
-             Switch: The next switch.
+            Switch: The next switch.
         """
+        awaitable = self._get_switches(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(flatten(awaitable))
+            return result
         
+    async def _get_switches(self, system=None) -> AsyncGenerator[Switch,None]:
         if system is None:
             #Authorized system
             system_url = f"/s/{self.id}"
@@ -470,7 +531,7 @@ class Client:
             # system ID
             system_url = f"/s/{system}"
 
-        url = f"{self.SERVER}{system_url}/switches"
+        url = f"{SERVER}{system_url}/switches"
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -493,8 +554,7 @@ class Client:
                 switch = Switch.from_json(item)
                 yield switch
 
-    @endpoint.func
-    async def new_switch(self, members) -> Switch:
+    def new_switch(self, members) -> Union[None, Coroutine[Any,Any,None]]:
         """Creates a new switch
         
         Note:
@@ -508,11 +568,19 @@ class Client:
 
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
+        awaitable = self._new_switch(members)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
+    async def _new_switch(self, members) -> None:
         if self.token is None:
             raise AuthorizationError()
         
-        url = f"{self.SERVER}/s/switches"
+        url = f"{SERVER}/s/switches"
         payload = json.dumps({"members": members}, ensure_ascii=False)
 
         async with httpx.AsyncClient(headers=self.content_headers) as session:
@@ -525,8 +593,7 @@ class Client:
             if response.status_code != 204: # catch-all
                 raise HTTPError(response.status_code)
     
-    @endpoint.func
-    async def get_message(self, message: Union[str, int, Message]) -> Message:
+    def get_message(self, message: Union[str, int, Message]) -> Union[Message, Coroutine[Any,Any,Message]]:
         """Fetches a message proxied by pluralkit
         
         Note:
@@ -536,11 +603,19 @@ class Client:
         Args:
             Message: The message to be fetched.
         """
+        awaitable = self._get_message(message)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
         
+    async def _get_message(self, message: Union[str, int, Message]) -> Message:
         if isinstance(message, (str, int)):
-            url = f"{self.SERVER}/msg/{message}"
+            url = f"{SERVER}/msg/{message}"
         elif isinstance(message, Message):
-            url = f"{self.SERVER}/msg/{message.id}"
+            url = f"{SERVER}/msg/{message.id}"
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
