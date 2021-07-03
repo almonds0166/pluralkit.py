@@ -3,6 +3,7 @@ __all__ = (
     "PluralKitException",
     "AuthorizationError",
     "SystemNotFound",
+    "MemberNotFound",
     "DiscordUserNotFound",
     "AccessForbidden",
     "InvalidKwarg",

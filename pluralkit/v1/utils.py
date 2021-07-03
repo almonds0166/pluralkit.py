@@ -3,6 +3,7 @@ from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
+    Awaitable, AsyncGenerator, Coroutine,
 )
 import datetime
 from http.client import responses as RESPONSE_CODES
@@ -44,6 +45,12 @@ SYSTEM_ATTRS = (
     "front_privacy",
     "front_history_privacy"
 )
+
+async def flatten(x: AsyncGenerator[Any,None]) -> List[Any]:
+    flattened = []
+    async for item in x:
+        flattened.append(x)
+    return flattened
 
 async def member_value(kwargs, key, value):
     """Prepares the kwargs given to `~v1.client.Client` methods for PluralKit's API, for internal
