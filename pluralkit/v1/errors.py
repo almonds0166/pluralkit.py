@@ -35,7 +35,7 @@ class SystemNotFound(PluralKitException):
         )
 
 class MemberNotFound(PluralKitException):
-    """Thrown when the system ID is apparently not in PluralKit's database.
+    """Thrown when the member ID is apparently not in PluralKit's database.
     """
     def __init__(self, id):
         super().__init__(

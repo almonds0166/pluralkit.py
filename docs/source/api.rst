@@ -100,46 +100,43 @@ PluralKitException
 ~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: errors.PluralKitException
-   :members:
 
 AccessForbidden
 ~~~~~~~~~~~~~~~
 
 .. autoclass:: errors.AccessForbidden
-   :members:
 
 AuthorizationError
 ~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: errors.AuthorizationError
-   :members:
 
 DiscordUserNotFound
 ~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: errors.DiscordUserNotFound
-   :members:
 
 InvalidBirthday
 ~~~~~~~~~~~~~~~
 
 .. autoclass:: errors.InvalidBirthday
-   :members:
 
 InvalidColor
 ~~~~~~~~~~~~
 
 .. autoclass:: errors.InvalidColor
-   :members:
 
 InvalidKwarg
 ~~~~~~~~~~~~
 
 .. autoclass:: errors.InvalidKwarg
-   :members:
 
 SystemNotFound
 ~~~~~~~~~~~~~~
 
 .. autoclass:: errors.SystemNotFound
-   :members:
+
+MemberNotFound
+~~~~~~~~~~~~~~
+
+.. autoclass:: errors.MemberNotFound

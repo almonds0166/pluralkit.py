@@ -25,11 +25,11 @@ There are two main ways to query version information about the library.
 
    A string representation of the version. e.g. ``"1.1.23"``.
 
-.. Most common headings would be New features, Bug fixes, Performance improvements, Miscellaneous
+.. Most common headings would be New features, Fixes, Improvements
 
 .. _whats_new:
 
-v0.1.1 (July 1, 2021)
+v0.1.0 (July ?, 2021)
 ---------------------
 
 New features
@@ -38,10 +38,11 @@ New features
 - Add synchronous support with ``async_mode=False`` in `Client`.
 - Switch over from `aiohttp`_ to `httpx`_.
 
-Bug fixes
-~~~~~~~~~
+Fixes
+~~~~~
 
 - Fix Birthday `ValueError` for member birthdays with hidden years
+- Raise `~errors.MemberNotFound` exception for invalid member IDs in `Client.get_member`.
 
 .. _`aiohttp`: https://docs.aiohttp.org/en/stable/
 .. _`httpx`: https://www.python-httpx.org/

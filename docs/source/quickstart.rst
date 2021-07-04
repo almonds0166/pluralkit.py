@@ -47,6 +47,7 @@ Client
 Below is an async example script that prints one's system members and system description, given one's :ref:`authorization token <token>`.
 
 .. code-block:: python
+
    from pluralkit import Client
    import asyncio
 
