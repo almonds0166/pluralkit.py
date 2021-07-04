@@ -449,6 +449,14 @@ class Client:
         .. _`PluralKit's member model`: https://pluralkit.me/api/#member-model
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
+        
+        awaitable = self._edit_member(**kwargs)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
     async def _edit_member(self, member_id: str, **kwargs) -> Member:
         if self.token is None:

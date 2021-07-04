@@ -33,6 +33,9 @@ class Color(colour.Color):
             super().__init__(args[0].hex_l)
         else:
             super().__init__(*args, **kwargs)
+    
+    def __eq__(self, other):
+        return self.hex_l == other.hex_l 
 
     @staticmethod
     def parse(c):
@@ -108,6 +111,9 @@ class Timezone:
             self.tz = args[0]
         else:
             self.tz = pytz.timezone(args[0])
+    
+    def __eq__(self, other):
+        return self.tz.zone == other.tz.zone
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.zone}>"
@@ -199,6 +205,9 @@ class Timestamp:
             f"{self.year:04d}-{self.month:02d}-{self.day:02d} "
             f"{self.hour:02d}:{self.minute:02d}:{self.second:02d} UTC"
         )
+    
+    def __eq__(self, other):
+        return self.datetime == other.datetime
 
     @property
     def year(self):
@@ -403,6 +412,9 @@ class ProxyTag:
             "A valid proxy tag must have at least one of the prefix or suffix defined."
         self.prefix = prefix
         self.suffix = suffix
+    
+    def __eq__(self, other):
+        return self.prefix == other.prefix and self.suffix == other.suffix
 
     @staticmethod
     def from_json(proxy_tag: Dict[str,str]):
@@ -471,6 +483,9 @@ class ProxyTags:
 
     def __getitem__(self, index):
         return self._proxy_tags[index]
+    
+    def __eq__(self, other):
+        return self._proxy_tags == other._proxy_tags
 
     @staticmethod
     def from_json(proxy_tags: Sequence[Dict[str,str]]):
@@ -569,7 +584,13 @@ class System:
 
     def __str__(self):
         return self.id
-
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def deep_equal(self, other) -> bool:
+        return self.__dict__ == other.__dict__
+        
     @staticmethod
     def from_json(system: Dict[str,Any]):
         """Static method to convert a system `dict` to a `System` object.
@@ -722,6 +743,12 @@ class Member:
 
     def __str__(self):
         return self.id
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def deep_equal(self, other):
+        return self.__dict__ == other.__dict__
 
     @staticmethod
     def from_json(member: Dict[str,Any]):
@@ -812,6 +839,9 @@ class Switch:
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
+    
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
     @staticmethod
     def from_json(switch: Dict[str,str]):
@@ -884,6 +914,9 @@ class Message:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
+    
+    def __eq__(self, other):
+        return self.id == other.id
 
     @staticmethod
     def from_json(message: Dict[str,Any]):
