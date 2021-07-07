@@ -7,6 +7,7 @@ from typing import (
 )
 
 import asyncio
+
 import httpx
 import json
 import datetime
@@ -378,6 +379,7 @@ class Client:
             raise Exception("Must have field 'name'")
 
         json_payload = json.dumps(kwargs, ensure_ascii=False)
+
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.post(f"{SERVER}/m/", data=json_payload)
             if response.status_code == 401:
@@ -450,7 +452,7 @@ class Client:
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
         
-        awaitable = self._edit_member(**kwargs)
+        awaitable = self._edit_member(member_id, **kwargs)
         if self.async_mode:
             return awaitable
         else:

@@ -1,17 +1,17 @@
  
-import os,sys,inspect
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+import os,sys, pathlib
+currentdir = pathlib.Path(__file__).parent
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from pluralkit import Client, Member
 import asyncio
 
-
 from dotenv import load_dotenv
 load_dotenv()
-  
-pk = Client(async_mode=False)
+
+token = os.environ['TOKEN']
+pk = Client(token, async_mode=False)
     
 def test_get_member():
 
@@ -43,9 +43,7 @@ def test_get_member():
     
     test_member = pk.get_member("gaznz")
         
-    assert reference_member == test_member
-    
-    
+    assert test_member.deep_equal(reference_member)
 
 def test_edit_member():
     
@@ -72,10 +70,6 @@ def test_edit_member():
     }
 
     
-    
-    token = os.environ['TOKEN']
-    pk = Client(token)
-    
     from random import choice
     
     member = {}
@@ -92,10 +86,9 @@ def test_edit_member():
                             avatar_privacy=m.avatar_privacy, birthday_privacy=m.birthday_privacy, 
                             pronoun_privacy=m.pronoun_privacy, metadata_privacy=m.metadata_privacy)
         
-    assert m == member
+    assert member.deep_equal(m)
 
 def test_new_member():
-    pk = Client()
     
     new_member_info = {
               "id":"gaznz",
@@ -130,9 +123,22 @@ def test_new_member():
                            keep_proxy=new_member.keep_proxy, proxy_tags=new_member.proxy_tags, 
                            pronoun_privacy=new_member.pronoun_privacy, 
                            description_privacy=new_member.description_privacy, 
-                           metadata_privacy=new_member.metadata_privacy)
-    
-    assert member == new_member
-    
-    pk.delete_member(member)
+                           metadata_privacy=new_member.metadata_privacy, 
+                           avatar_privacy=new_member.avatar_privacy)
+    try:
+        assert member.deep_equal(other=new_member, new_member=True) is True
+    except AssertionError:
+        for key, value in member.__dict__.items():
+            if key not in ("id", "created"):
+                try:
+                    assert value == new_member.__dict__[key]
+                except AssertionError:
+                    try:
+                        pk.delete_member(member.id)
+                    except:
+                        print(f"Unable to delete member {member.id}")
+                    print(f"Error occured at {key}: {value}")
+                    assert value == new_member.__dict__[key]
+            
+    pk.delete_member(member.id)
         

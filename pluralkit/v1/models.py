@@ -33,9 +33,6 @@ class Color(colour.Color):
             super().__init__(args[0].hex_l)
         else:
             super().__init__(*args, **kwargs)
-    
-    def __eq__(self, other):
-        return self.hex_l == other.hex_l 
 
     @staticmethod
     def parse(c):
@@ -75,7 +72,7 @@ class Color(colour.Color):
     def from_json(color: str):
         """Takes in a string (as returned by the API) and returns the `Color`.
         """
-        return Color.__new__(Color, f"#{color}") # mypy says this has too many args?
+        return Color(color=f"#{color}") # mypy says this has too many args?
 
     def json(self):
         """Returns the hex of the `Color` sans the ``#`` symbol.
@@ -114,6 +111,9 @@ class Timezone:
     
     def __eq__(self, other):
         return self.tz.zone == other.tz.zone
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.zone}>"
@@ -207,7 +207,10 @@ class Timestamp:
         )
     
     def __eq__(self, other):
-        return self.datetime == other.datetime
+        return self.json() == other.json()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @property
     def year(self):
@@ -415,6 +418,9 @@ class ProxyTag:
     
     def __eq__(self, other):
         return self.prefix == other.prefix and self.suffix == other.suffix
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(proxy_tag: Dict[str,str]):
@@ -486,6 +492,9 @@ class ProxyTags:
     
     def __eq__(self, other):
         return self._proxy_tags == other._proxy_tags
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(proxy_tags: Sequence[Dict[str,str]]):
@@ -588,8 +597,18 @@ class System:
     def __eq__(self, other):
         return self.id == other.id
     
-    def deep_equal(self, other) -> bool:
-        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def deep_equal(self, other, ignore_id=False) -> bool:
+        if ignore_id is False:
+            return self.__dict__ == other.__dict__
+        elif ignore_id is True:
+            self_dict = self.__dict__
+            self_dict.pop("id")
+            other_dict = other.__dict__
+            other_dict.pop("id")
+            return self_dict == other_dict
         
     @staticmethod
     def from_json(system: Dict[str,Any]):
@@ -747,8 +766,26 @@ class Member:
     def __eq__(self, other):
         return self.id == other.id
     
-    def deep_equal(self, other):
-        return self.__dict__ == other.__dict__
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def deep_equal(self, other, new_member=False) -> bool:
+        if new_member is False:
+            return self.__dict__ == other.__dict__
+        elif new_member is True:
+            def mutate_dict(dict):
+                current_dict = dict.copy()
+                keys_to_delete = ["id", "created"]
+                privacy_keys: ["name_privacy", "description_privacy", 
+                               "birthday_privacy", "avatar_privacy", "metadata_privacy", 
+                               "pronoun_privacy"]
+                for key in keys_to_delete:
+                    del current_dict[key]
+                for key in privacy_keys:
+                    if current_dict[key] is None:
+                        current_dict[key] = "public"
+                    
+            return mutate_dict(self.__dict__) == mutate_dict(other.__dict__)
 
     @staticmethod
     def from_json(member: Dict[str,Any]):
@@ -842,6 +879,9 @@ class Switch:
     
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(switch: Dict[str,str]):
@@ -917,6 +957,9 @@ class Message:
     
     def __eq__(self, other):
         return self.id == other.id
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(message: Dict[str,Any]):
