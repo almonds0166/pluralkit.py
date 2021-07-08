@@ -776,7 +776,7 @@ class Member:
             def mutate_dict(dict):
                 current_dict = dict.copy()
                 keys_to_delete = ["id", "created"]
-                privacy_keys: ["name_privacy", "description_privacy", 
+                privacy_keys = ["name_privacy", "description_privacy", 
                                "birthday_privacy", "avatar_privacy", "metadata_privacy", 
                                "pronoun_privacy"]
                 for key in keys_to_delete:

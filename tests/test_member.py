@@ -56,7 +56,8 @@ def test_edit_member():
         "color": ["red", "#ffffff", ""],
         "created": ["2021-06-14T01:48:54.911915Z"],
         "avatar_url": ["https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885__480.jpg", 
-                    "https://image.shutterstock.com/image-photo/mountains-under-mist-morning-amazing-260nw-1725825019.jpg"],
+                       "https://image.shutterstock.com/image-photo/mountains-under-mist-morning-"
+                       "amazing-260nw-1725825019.jpg"],
         "birthday": ["1904-02-28", "2025-06-12", "0834-12-23"],
         "proxy_tags": [[{"prefix": "t;"}], [{"suffix": ";t"}], [{"prefix": "te;"}]],
         "keep_proxy": [True, False],
@@ -86,7 +87,16 @@ def test_edit_member():
                             avatar_privacy=m.avatar_privacy, birthday_privacy=m.birthday_privacy, 
                             pronoun_privacy=m.pronoun_privacy, metadata_privacy=m.metadata_privacy)
         
-    assert member.deep_equal(m)
+    try:
+        assert member.deep_equal(other=m, new_member=True) is True
+    except AssertionError:
+        for key, value in member.__dict__.items():
+            if key not in ("id", "created"):
+                try:
+                    assert value == m.__dict__[key]
+                except AssertionError as e:
+                    print(f"Error occured at {key}: {value}")
+                    assert value == m.__dict__[key]
 
 def test_new_member():
     

@@ -53,7 +53,7 @@ class Client:
                 loop = asyncio.get_event_loop()
                 system = loop.run_until_complete(self._get_system())
             else:
-                system = self.get_system()
+                system = self.get_system() # type: ignore
             self.id = system.id
         self.user_agent = user_agent
         if user_agent:
@@ -110,9 +110,9 @@ class Client:
 
             resp = response.json()
 
-            system = System.from_json(resp)
+            new_system = System.from_json(resp)
 
-            return system
+            return new_system
     
     def edit_system(self, **kwargs) -> Union[System, Coroutine[Any,Any,System]]:
         """"Edits one's own system
@@ -156,11 +156,9 @@ class Client:
     
         for key, value in kwargs.items():
             kwargs = await system_value(key=key, value=value)
-        
-        json_object = json.dumps(kwargs, ensure_ascii=False)
 
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.patch(url, data=json_object)
+            response = await session.patch(url, data=kwargs)
             if response.status_code != 200: # catch-all
                 raise HTTPError(response.status_code)
 
@@ -247,8 +245,8 @@ class Client:
                 # Discord user ID
 
                 system_info = await session.get(f"https://api.pluralkit.me/v1/a/{system}")
-                system = System.from_json(system_info.json())
-                url = f"{SERVER}/s/{system.id}/members"
+                artificial_system = System.from_json(system_info.json())
+                url = f"{SERVER}/s/{artificial_system.id}/members"
 
             response = await session.get(url)
             if response.status_code == 401:
@@ -377,11 +375,11 @@ class Client:
             kwargs = await member_value(kwargs=kwargs, key=key, value=value)
         if self._name is None:
             raise Exception("Must have field 'name'")
-
-        json_payload = json.dumps(kwargs, ensure_ascii=False)
+        
+        payload = json.dumps(kwargs, ensure_ascii=False)
 
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.post(f"{SERVER}/m/", data=json_payload)
+            response = await session.post(f"{SERVER}/m/", data=payload)
             if response.status_code == 401:
                 raise AuthorizationError
             elif response.status_code == 200:
@@ -466,10 +464,11 @@ class Client:
         
         for key, value in kwargs.items():
             kwargs = await member_value(kwargs=kwargs, key=key, value=value)
-
-        json_payload = json.dumps(kwargs, ensure_ascii=False)
+        
+        payload = json.dumps(kwargs, ensure_ascii=False)
+        
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.patch(f"{SERVER}/m/{member_id}", data=json_payload)
+            response = await session.patch(f"{SERVER}/m/{member_id}", data=payload)
             if response.status_code == 401:
                 raise AuthorizationError
             elif response.status_code == 200:
@@ -591,8 +590,9 @@ class Client:
             raise AuthorizationError()
         
         url = f"{SERVER}/s/switches"
-        payload = json.dumps({"members": members}, ensure_ascii=False)
 
+        payload = json.dumps({"members": members}, ensure_ascii=False)
+        
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.post(url, data=payload)
             if response.status_code == 401:
