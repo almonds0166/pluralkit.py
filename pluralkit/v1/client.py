@@ -5,19 +5,20 @@ from typing import (
     Tuple, List, Set, Sequence, Dict,
     Awaitable, AsyncGenerator, Coroutine,
 )
-
+import collections
+import datetime
+import json
 import asyncio
+from http.client import responses as RESPONSE_CODES
 
 import httpx
-import json
-import datetime
-from http.client import responses as RESPONSE_CODES
 
 from .models import Message, System, Member, Switch, Timestamp
 from .errors import *
 from .utils import *
 
 SERVER = "https://api.pluralkit.me/v1"
+RATE_LIMIT_THROTTLE = 0.1 # seconds
 
 class Client:
     """Represents a client that interacts with the PluralKit API.
@@ -38,11 +39,11 @@ class Client:
         id (Optional[str]): The five-letter lowercase ID of one's system if an authorization token
             is provided.
     """
-
     def __init__(self, token: Optional[str]=None, *,
         async_mode: bool=True,
         user_agent: Optional[str]=None
     ):
+        self._calls_queue = collections.deque()
         self.async_mode = async_mode
         self.token = token
         self.headers = {}
@@ -60,6 +61,20 @@ class Client:
             self.headers["User-Agent"] = user_agent
         self.content_headers = self.headers.copy()
         self.content_headers['Content-Type'] = "application/json"
+
+    def _num_calls_in_last_half_second(self):
+        half_second = datetime.timedelta(seconds=0.5)
+        while len(self._calls_queue) \
+                and datetime.datetime.now() - self._calls_queue[-1] > half_second:
+            self._calls_queue.pop()
+
+        return len(self._calls_queue)
+
+    async def _respect_rate_limit(self):
+        while self._num_calls_in_last_half_second() >= 1:
+            await asyncio.sleep(RATE_LIMIT_THROTTLE)
+
+        self._calls_queue.append(datetime.datetime.now())
 
     def get_system(self, system: Union[System,str,int,None]=None) \
     -> Union[System, Coroutine[Any,Any,System]]:
@@ -94,6 +109,8 @@ class Client:
         elif isinstance(system, int):
             # Discord user ID
             url = f"{SERVER}/a/{system}"
+
+        await self._respect_rate_limit()
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -166,6 +183,8 @@ class Client:
         
         payload = json.dumps(kwargs, ensure_ascii=False)
 
+        await self._respect_rate_limit()
+
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.patch(url, data=payload)
             if response.status_code != 200: # catch-all
@@ -202,6 +221,8 @@ class Client:
             url = f"{SERVER}/s/{system}/fronters"
         elif isinstance(system, System):
             url = f"{SERVER}/s/{system.id}/fronters"
+
+        await self._respect_rate_limit()
         
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -240,6 +261,9 @@ class Client:
 
     async def _get_members(self, system: Union[System,str,int,None]=None) \
     -> AsyncGenerator[Member,None]:
+
+        await self._respect_rate_limit()
+
         async with httpx.AsyncClient(headers=self.headers) as session:
             if system is None:
                 # get own system
@@ -298,6 +322,9 @@ class Client:
             return result
 
     async def _get_member(self, member_id: str) -> Member:
+
+        await self._respect_rate_limit()
+
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(f"{SERVER}/m/{member_id}")
             if response.status_code == 401:
@@ -386,6 +413,8 @@ class Client:
             raise Exception("Must have field 'name'")
         
         payload = json.dumps(kwargs, ensure_ascii=False)
+
+        await self._respect_rate_limit()
 
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.post(f"{SERVER}/m/", data=payload)
@@ -487,6 +516,8 @@ class Client:
         
         payload = json.dumps(kwargs, ensure_ascii=False)
         
+        await self._respect_rate_limit()
+
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.patch(f"{SERVER}/m/{member_id}", data=payload)
             if response.status_code == 401:
@@ -520,6 +551,8 @@ class Client:
 
     async def _delete_member(self, member_id: str) -> None:
         url = f"{SERVER}/m/{member_id}"
+
+        await self._respect_rate_limit()
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.delete(url)
@@ -561,6 +594,8 @@ class Client:
             system_url = f"/s/{system}"
 
         url = f"{SERVER}{system_url}/switches"
+
+        await self._respect_rate_limit()
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
@@ -615,6 +650,8 @@ class Client:
 
         payload = json.dumps({"members": members}, ensure_ascii=False)
         
+        await self._respect_rate_limit()
+
         async with httpx.AsyncClient(headers=self.content_headers) as session:
             response = await session.post(url, data=payload)
             if response.status_code == 401:
@@ -648,6 +685,8 @@ class Client:
             url = f"{SERVER}/msg/{message}"
         elif isinstance(message, Message):
             url = f"{SERVER}/msg/{message.id}"
+
+        await self._respect_rate_limit()
 
         async with httpx.AsyncClient(headers=self.headers) as session:
             response = await session.get(url)
