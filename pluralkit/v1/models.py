@@ -207,10 +207,67 @@ class Timestamp:
         )
     
     def __eq__(self, other):
-        return self.json() == other.json()
+        if isinstance(other, self.__class__):
+            return self.json() == other.json()
+        elif isinstance(other, datetime):
+            if other.tzinfo is None:
+                return self.datetime == other.replace(tzinfo=pytz.utc) # assume UTC
+            else:
+                return self.datetime == other
+
+        return NotImplemented
     
     def __ne__(self, other):
-        return not self.__eq__(other)
+        x = self.__eq__(other)
+
+        if x is NotImplemented:
+            return NotImplemented
+        else:
+            return not x
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.datetime < other.datetime
+        elif isinstance(other, datetime):
+            if other.tzinfo is None:
+                return self.datetime < other.replace(tzinfo=pytz.utc) # assume UTC
+            else:
+                return self.datetime < other
+
+        return NotImplemented
+
+    def __le__(self, other):
+        if isinstance(other, self.__class__):
+            return self.datetime <= other.datetime
+        elif isinstance(other, datetime):
+            if other.tzinfo is None:
+                return self.datetime <= other.replace(tzinfo=pytz.utc) # assume UTC
+            else:
+                return self.datetime <= other
+
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, self.__class__):
+            return self.datetime > other.datetime
+        elif isinstance(other, datetime):
+            if other.tzinfo is None:
+                return self.datetime > other.replace(tzinfo=pytz.utc) # assume UTC
+            else:
+                return self.datetime > other
+
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, self.__class__):
+            return self.datetime >= other.datetime
+        elif isinstance(other, datetime):
+            if other.tzinfo is None:
+                return self.datetime >= other.replace(tzinfo=pytz.utc) # assume UTC
+            else:
+                return self.datetime >= other
+
+        return NotImplemented
 
     @property
     def year(self):
