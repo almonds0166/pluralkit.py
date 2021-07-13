@@ -65,14 +65,14 @@ class Color(colour.Color):
                 return Color(c)
 
         raise TypeError(
-            f"Argument `c` must be of type colour.Color or str; received {type(c)=}."
+            f"Argument `c` must be of type colour.Color or str; received c={type(c)}."
         )
 
     @staticmethod
     def from_json(color: str):
         """Takes in a string (as returned by the API) and returns the `Color`.
         """
-        return Color.__new__(Color, f"#{color}") # mypy says this has too many args?
+        return Color(color=f"#{color}") # mypy says this has too many args?
 
     def json(self):
         """Returns the hex of the `Color` sans the ``#`` symbol.
@@ -102,12 +102,18 @@ class Timezone:
         if len(args) != 1 or len(kwargs) != 0:
             raise TypeError(
                 f"Timezone is initialized with exactly one positional argument `tz`; " \
-                f"received {len(args)=} and {len(kwargs)=}"
+                f"received len(args)={len(args)} and len(args)={len(kwargs)}"
             )
         if isinstance(args[0], tzinfo):
             self.tz = args[0]
         else:
             self.tz = pytz.timezone(args[0])
+    
+    def __eq__(self, other):
+        return self.tz.zone == other.tz.zone
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.zone}>"
@@ -135,7 +141,7 @@ class Timezone:
 
         raise TypeError(
             f"Argument `tz` must be of type Timezone, tzinfo, or str; " \
-            f"received {type(tz)=}."
+            f"received type(tz)={type(tz)}."
         )
 
     @staticmethod
@@ -199,6 +205,12 @@ class Timestamp:
             f"{self.year:04d}-{self.month:02d}-{self.day:02d} "
             f"{self.hour:02d}:{self.minute:02d}:{self.second:02d} UTC"
         )
+    
+    def __eq__(self, other):
+        return self.json() == other.json()
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @property
     def year(self):
@@ -283,7 +295,7 @@ class Timestamp:
 
         raise TypeError(
             f"Argument `ts` must be of type Timestamp, datetime.datetime, or str; " \
-            f"received {type(ts)=}."
+            f"received type(ts)={type(ts)}."
         )
 
     @staticmethod
@@ -361,7 +373,7 @@ class Birthday(Timestamp):
 
         raise TypeError(
             f"Argument `bd` must be None or of type Birthday, datetime.datetime, or str; " \
-            f"received {type(bd)=}."
+            f"received type(bd)={type(bd)}."
         )
 
     @staticmethod
@@ -403,6 +415,12 @@ class ProxyTag:
             "A valid proxy tag must have at least one of the prefix or suffix defined."
         self.prefix = prefix
         self.suffix = suffix
+    
+    def __eq__(self, other):
+        return self.prefix == other.prefix and self.suffix == other.suffix
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(proxy_tag: Dict[str,str]):
@@ -471,6 +489,12 @@ class ProxyTags:
 
     def __getitem__(self, index):
         return self._proxy_tags[index]
+    
+    def __eq__(self, other):
+        return set(self._proxy_tags) == set(other._proxy_tags)
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(proxy_tags: Sequence[Dict[str,str]]):
@@ -569,7 +593,23 @@ class System:
 
     def __str__(self):
         return self.id
-
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def _deep_equal(self, other, ignore_id=False) -> bool:
+        if ignore_id is False:
+            return self.__dict__ == other.__dict__
+        elif ignore_id is True:
+            self_dict = self.__dict__
+            self_dict.pop("id")
+            other_dict = other.__dict__
+            other_dict.pop("id")
+            return self_dict == other_dict
+        
     @staticmethod
     def from_json(system: Dict[str,Any]):
         """Static method to convert a system `dict` to a `System` object.
@@ -674,7 +714,7 @@ class Member:
     def __init__(self, *,
         id: str,
         name: str,
-        created: Union[Timestamp,datetime,str],
+        created: Union[None, Timestamp,datetime,str],
         name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         display_name: Optional[str]=None,
         description: Optional[str]=None,
@@ -694,7 +734,10 @@ class Member:
         self.id = id
         self.name = name
 
-        self.created = Timestamp.parse(created)
+        if created is not None:
+            self.created = Timestamp.parse(created)
+        else:
+            self.created = None
         self.birthday = Birthday.parse(birthday)
         self.color = Color.parse(color)
 
@@ -722,6 +765,30 @@ class Member:
 
     def __str__(self):
         return self.id
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def _deep_equal(self, other, new_member=False) -> bool:
+        if new_member is False:
+            return self.__dict__ == other.__dict__
+        elif new_member is True:
+            def mutate_dict(dict):
+                current_dict = dict.copy()
+                keys_to_delete = ["id", "created"]
+                privacy_keys = ["name_privacy", "description_privacy", 
+                               "birthday_privacy", "avatar_privacy", "metadata_privacy", 
+                               "pronoun_privacy"]
+                for key in keys_to_delete:
+                    del current_dict[key]
+                for key in privacy_keys:
+                    if current_dict[key] is None:
+                        current_dict[key] = "public"
+                    
+            return mutate_dict(self.__dict__) == mutate_dict(other.__dict__)
 
     @staticmethod
     def from_json(member: Dict[str,Any]):
@@ -812,6 +879,12 @@ class Switch:
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
+    
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(switch: Dict[str,str]):
@@ -884,6 +957,12 @@ class Message:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     @staticmethod
     def from_json(message: Dict[str,Any]):

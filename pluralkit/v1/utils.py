@@ -12,7 +12,7 @@ import httpx
 import colour
 import pytz
 
-from .models import ProxyTag, Privacy, Timezone, Color
+from .models import Birthday, ProxyTag, Privacy, Timestamp, Timezone, Color
 from .errors import *
 
 MEMBER_ATTRS = (
@@ -49,7 +49,7 @@ SYSTEM_ATTRS = (
 async def flatten(x: AsyncGenerator[Any,None]) -> List[Any]:
     flattened = []
     async for item in x:
-        flattened.append(x)
+        flattened.append(item)
     return flattened
 
 async def member_value(kwargs, key, value):
@@ -62,34 +62,40 @@ async def member_value(kwargs, key, value):
         if value is not None:
             kwargs[key] = Color.parse(value).hex_l[1:]
     elif key == "birthday":
-        if isinstance(value, datetime.date): # will catch Timestamp and Birthday objects
-            kwargs[key] = value.strftime("%Y-%m-%d")
+        if isinstance(value, datetime.date):
+            kwargs[key] = value.strftime(r"%Y-%m-%d")
         elif isinstance(value, str):
             try:
-                datetime.datetime.strptime(value, "%Y-%m-%d")
+                datetime.datetime.strptime(value, r"%Y-%m-%d")
             except:
                 raise InvalidBirthday(value)
+        elif isinstance(value, Birthday):
+            kwargs[key] = value.json()
     elif key == "keep_proxy":
         if not isinstance(value, bool):
             raise ValueError(
-                f"Keyword arg `keep_proxy` must be a boolean value; received {type(key)=}."
+                f"Keyword arg `keep_proxy` must be a boolean value; received type(key)={type(key)}."
             )
     elif key in MEMBER_ATTRS [9:]:
         if not value in ("public", "private", None) and not value in Privacy:
             raise ValueError(
                 f"Keyword arg `{key}` must be in (None, 'public', 'private') or a Privacy; " \
-                f"instead was {value=}."
+                f"instead was value={value}."
             )
         if value in Privacy:
             kwargs[key] = value.value # convert Privacy enum to strt
+
     elif key == "avatar_url":
-        async with httpx.AsyncClient() as session:
-            response = session.head(value)
-            code = response.status_code
-            if code != 200:
-                raise ValueError(
-                    f"Invalid URL passed. Received {code} {RESPONSE_CODES[code]}."
-                )
+        if isinstance(value, str):
+            async with httpx.AsyncClient() as session:
+                response = await session.head(value)
+                code = response.status_code
+                if code != 200:
+                    raise ValueError(
+                        f"Invalid URL passed. Received {code} {RESPONSE_CODES[code]}."
+                    )
+        elif value is not None:
+            raise ValueError(f"{key}'s value must be of type str or None")
     elif key == "proxy_tags":
         proxy_tags = []
         for proxy_tag in value:

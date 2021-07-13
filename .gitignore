@@ -19,3 +19,6 @@ update_reqs.*
 tmp.*
 temp.*
 main.py
+.env
+.vscode/
+tests/tests.docx
