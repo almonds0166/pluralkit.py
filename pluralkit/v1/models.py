@@ -714,7 +714,7 @@ class Member:
     def __init__(self, *,
         id: str,
         name: str,
-        created: Union[Timestamp,datetime,str],
+        created: Union[None, Timestamp,datetime,str],
         name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
         display_name: Optional[str]=None,
         description: Optional[str]=None,
@@ -734,7 +734,10 @@ class Member:
         self.id = id
         self.name = name
 
-        self.created = Timestamp.parse(created)
+        if created is not None:
+            self.created = Timestamp.parse(created)
+        else:
+            self.created = None
         self.birthday = Birthday.parse(birthday)
         self.color = Color.parse(color)
 

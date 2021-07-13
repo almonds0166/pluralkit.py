@@ -114,7 +114,7 @@ class Client:
 
             return new_system
     
-    def edit_system(self, **kwargs) -> Union[System, Coroutine[Any,Any,System]]:
+    def edit_system(self, system: System, **kwargs) -> Union[System, Coroutine[Any,Any,System]]:
         """"Edits one's own system
         
         Note:
@@ -140,7 +140,7 @@ class Client:
 
         .. _`PluralKit's system model`: https://pluralkit.me/api/#system-model
         """
-        awaitable = self._edit_system(**kwargs)
+        awaitable = self._edit_system(system, **kwargs)
         if self.async_mode:
             return awaitable
         else:
@@ -148,17 +148,25 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _edit_system(self, **kwargs) -> System:
+    async def _edit_system(self, system=None, **kwargs) -> System:
         if self.token is None:
             raise AuthorizationError()
 
         url = f"https://api.pluralkit.me/v1/s"
-    
-        for key, value in kwargs.items():
-            kwargs = await system_value(key=key, value=value)
+        if type(system) is not System:
+            raise TypeError("system must be of type 'System'")
+        elif system is not None:
+            kwargs = system.json()
+            del kwargs['id']
+            del kwargs['created']
+        else:
+            for key, value in kwargs.items():
+                kwargs = await system_value(key=key, value=value)
+        
+        payload = json.dumps(kwargs, ensure_ascii=False)
 
         async with httpx.AsyncClient(headers=self.content_headers) as session:
-            response = await session.patch(url, data=kwargs)
+            response = await session.patch(url, data=payload)
             if response.status_code != 200: # catch-all
                 raise HTTPError(response.status_code)
 
@@ -390,7 +398,7 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
-    def edit_member(self, member_id: str, **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
+    def edit_member(self, member_id: Union[str, Member], **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
         """Edits a member of one's system.
 
         Note:
@@ -458,12 +466,17 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _edit_member(self, member_id: str, **kwargs) -> Member:
+    async def _edit_member(self, member_id: Union[str, Member], **kwargs) -> Member:
         if self.token is None:
             raise AuthorizationError()
         
-        for key, value in kwargs.items():
-            kwargs = await member_value(kwargs=kwargs, key=key, value=value)
+        if not type(member_id) is Member:
+            for key, value in kwargs.items():
+                kwargs = await member_value(kwargs=kwargs, key=key, value=value)
+        else:
+            kwargs = member_id.json()
+            del kwargs['id']
+            del kwargs['created']
         
         payload = json.dumps(kwargs, ensure_ascii=False)
         
@@ -585,11 +598,13 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _new_switch(self, members) -> None:
+    async def _new_switch(self, members: List[Union[str, Member]]):
         if self.token is None:
             raise AuthorizationError()
         
         url = f"{SERVER}/s/switches"
+        
+        members = [m.id if type(m) is Member else m for m in members]
 
         payload = json.dumps({"members": members}, ensure_ascii=False)
         
@@ -637,5 +652,5 @@ class Client:
                 raise HTTPError(response.status_code)
             else:
                 resp = response.json()
-                
+
                 return Message.from_json(resp)

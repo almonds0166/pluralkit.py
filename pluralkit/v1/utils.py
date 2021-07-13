@@ -49,7 +49,7 @@ SYSTEM_ATTRS = (
 async def flatten(x: AsyncGenerator[Any,None]) -> List[Any]:
     flattened = []
     async for item in x:
-        flattened.append(x)
+        flattened.append(item)
     return flattened
 
 async def member_value(kwargs, key, value):

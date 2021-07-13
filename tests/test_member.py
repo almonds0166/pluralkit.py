@@ -43,7 +43,16 @@ def test_get_member():
     
     test_member = pk.get_member("gaznz")
         
-    assert test_member.deep_equal(reference_member)
+    try:
+        assert test_member.deep_equal(other=reference_member) is True
+    except AssertionError:
+        for key, value in test_member.__dict__.items():
+            if key not in ("id", "created"):
+                try:
+                    assert value == reference_member.__dict__[key]
+                except AssertionError as e:
+                    print(f"Error occured at {key}: {value}")
+                    assert value == reference_member.__dict__[key]
 
 def test_edit_member():
     

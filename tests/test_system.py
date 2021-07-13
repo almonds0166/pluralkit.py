@@ -40,4 +40,31 @@ def test_get_system():
     assert system.deep_equal(expected_system)
 
 def test_get_members():
-    pass
+    pk.get_members()
+
+def test_edit_system():
+    new_sys = {
+               "id":"lmzyh",
+               "name":"Testing...system",
+               "description":None,
+               "tag":None,
+               "avatar_url":None,
+               "created":"2021-06-14T01:48:47.903899Z",
+               "tz":"UTC",
+               "description_privacy":None,
+               "member_list_privacy":None,
+               "front_privacy":None,
+               "front_history_privacy":None
+               }
+    
+    new_sys = System.from_json(new_sys)
+    
+    pk.edit_system(new_sys)
+
+def test_get_fronters():
+    pk.get_fronters()
+
+def test_get_switches():
+    pk.get_switches()
+
+test_edit_system()
