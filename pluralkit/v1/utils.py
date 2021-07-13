@@ -116,11 +116,14 @@ async def member_value(kwargs, key, value):
 async def system_value(key, value):
     if not key in SYSTEM_ATTRS:
         raise InvalidKwarg(key)
-    if key in ("name", "description", "tag", "avatar_url") and not isinstance(value, str):
+    if key == "name" and not isinstance(value, str):
         raise ValueError(f"{key}'s value must be of type string")
+    if key in ("description", "tag", "avatar_url",
+               "description_privacy", "member_list_privacy", "front_privacy", 
+               "front_history_privacy") \
+            and not isinstance(value, str) \
+            and value is not None:
+        raise ValueError(f"{key}'s value must be of type string or None")
     if key == "tz" and not isinstance(value, (Timezone, str)):
         raise ValueError(f"{key}'s value must be of type string or Timezone")
-    if key in ("description_privacy", "member_list_privacy", "front_privacy", 
-              "front_history_privacy") and not isinstance(value, bool):
-        raise ValueError(f"{key}'s value must be of type bool")
 
