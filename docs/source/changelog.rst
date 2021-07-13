@@ -29,20 +29,22 @@ There are two main ways to query version information about the library.
 
 .. _whats_new:
 
-v0.1.0 (July ?, 2021)
----------------------
+v0.1.0 (July 12, 2021)
+----------------------
 
 New features
 ~~~~~~~~~~~~
 
-- Add synchronous support with ``async_mode=False`` in `Client`.
-- Switch over from `aiohttp`_ to `httpx`_.
+- Added synchronous support with ``async_mode=False`` in `Client`.
+- Switched over from `aiohttp`_ to `httpx`_.
+- `Client.edit_system` and `Client.edit_member` can now take an optional `System` and `Member` argument, respectively.
 
 Fixes
 ~~~~~
 
-- Fix Birthday `ValueError` for member birthdays with hidden years
+- Fixed `Birthday` from raising `ValueError` for member birthdays with hidden years.
 - Raise `~errors.MemberNotFound` exception for invalid member IDs in `Client.get_member`.
+- Fixed `Member.color` attribute.
 
 .. _`aiohttp`: https://docs.aiohttp.org/en/stable/
 .. _`httpx`: https://www.python-httpx.org/

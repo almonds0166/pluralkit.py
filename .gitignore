@@ -1,3 +1,6 @@
+# platform-specific
+.DS_Store
+
 # byte code
 __pycache__/
 

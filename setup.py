@@ -42,6 +42,7 @@ setup(
          "Sphinx==3.5.4", # documentation!
          "sphinx-autodoc-typehints==1.12.0", # better sphinx parsing
          "sphinx-book-theme==0.1.0", # Book theme
+         "sphinxcontrib-trio==1.1.2", # better async handling
          "mypy==0.910", # type checking
          "types-pytz==2021.1.0", # type checking with pytz
          "pytest==6.2.4", # testing module

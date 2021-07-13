@@ -34,12 +34,12 @@ print(f"Building docs for: {project} v{release}")
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named "sphinx.ext.*") or your custom
 # ones.
+sys.path.append(os.path.abspath("extensions"))
 extensions = [
    "sphinx.ext.napoleon",
-
    "sphinx.ext.intersphinx",
    "sphinx.ext.autodoc",
-   "sphinx_autodoc_typehints"
+   "sphinxcontrib_trio",
 ]
 intersphinx_mapping = {
    "python": ("https://docs.python.org/3", None),
