@@ -255,8 +255,10 @@ class Client:
                 if response.status_code != 200: # catch-all
                     raise HTTPError(response.status_code)
 
-                system_ = System.from_json(system_info.json())
+                system_ = System.from_json(response.json())
+                print(system_.json())
                 url = f"{SERVER}/s/{system_.id}/fronters"
+                print(url)
 
             await self._respect_rate_limit()
             response = await session.get(url)
@@ -680,7 +682,7 @@ class Client:
                 if response.status_code != 200: # catch-all
                     raise HTTPError(response.status_code)
 
-                system_ = System.from_json(system_info.json())
+                system_ = System.from_json(response.json())
                 url = f"{SERVER}/s/{system_.id}/switches"
 
             await self._respect_rate_limit()
