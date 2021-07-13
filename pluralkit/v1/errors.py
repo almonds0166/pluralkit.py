@@ -90,7 +90,7 @@ class InvalidBirthday(PluralKitException):
         )
 
 class HTTPError(PluralKitException):
-    """Thrown when 
+    """Thrown when pluralkit.py receives an unexpected status code.
     """
     def __init__(self, status_code):
         super().__init__(
