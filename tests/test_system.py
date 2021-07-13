@@ -5,9 +5,6 @@ sys.path.insert(0,parentdir)
 
 from pluralkit import Client, System
 
-from dotenv import load_dotenv
-load_dotenv()
-
 token = os.environ['TOKEN']
 pk = Client(token, async_mode=False)
 

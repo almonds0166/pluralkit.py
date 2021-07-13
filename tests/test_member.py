@@ -5,10 +5,6 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir) 
 
 from pluralkit import Client, Member
-import asyncio
-
-from dotenv import load_dotenv
-load_dotenv()
 
 token = os.environ['TOKEN']
 pk = Client(token, async_mode=False)
