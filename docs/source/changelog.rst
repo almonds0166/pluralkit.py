@@ -38,6 +38,7 @@ New features
 - Added synchronous support with ``async_mode=False`` in `Client`.
 - Switched over from `aiohttp`_ to `httpx`_.
 - `Client.edit_system` and `Client.edit_member` can now take an optional `System` and `Member` argument, respectively.
+- Added equality methods to the model classes.
 
 Fixes
 ~~~~~
