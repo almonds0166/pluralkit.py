@@ -148,17 +148,18 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _edit_system(self, system=None, **kwargs) -> System:
+    async def _edit_system(self, system: Optional[System]=None, **kwargs) -> System:
         if self.token is None:
             raise AuthorizationError()
 
         url = f"https://api.pluralkit.me/v1/s"
-        if type(system) is not System:
-            raise TypeError("system must be of type 'System'")
-        elif system is not None:
+        if system is not None and not kwargs:
             kwargs = system.json()
             del kwargs['id']
             del kwargs['created']
+        elif system is not None and kwargs:
+            kwargs_ = system.json()
+            kwargs = kwargs_.update(kwargs)
         else:
             for key, value in kwargs.items():
                 kwargs = await system_value(key=key, value=value)
@@ -253,8 +254,8 @@ class Client:
                 # Discord user ID
 
                 system_info = await session.get(f"https://api.pluralkit.me/v1/a/{system}")
-                artificial_system = System.from_json(system_info.json())
-                url = f"{SERVER}/s/{artificial_system.id}/members"
+                system_ = System.from_json(system_info.json())
+                url = f"{SERVER}/s/{system_.id}/members"
 
             response = await session.get(url)
             if response.status_code == 401:
@@ -398,7 +399,10 @@ class Client:
                         f"{response.status_code} http code, here is a list of possible http codes "
                         "https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#4xx_client_errors")
 
-    def edit_member(self, member_id: Union[str, Member], **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
+    def edit_member(self, 
+                    member_id: Union[str, Member], 
+                    member: Optional[Member]=None, 
+                    **kwargs) -> Union[Member, Coroutine[Any,Any,Member]]:
         """Edits a member of one's system.
 
         Note:
@@ -458,7 +462,7 @@ class Client:
         .. _`authorization token`: https://pluralkit.me/api/#authentication
         """
         
-        awaitable = self._edit_member(member_id, **kwargs)
+        awaitable = self._edit_member(member_id, member, **kwargs)
         if self.async_mode:
             return awaitable
         else:
@@ -466,17 +470,20 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _edit_member(self, member_id: Union[str, Member], **kwargs) -> Member:
+    async def _edit_member(self, member_id: str, member: Optional[Member]=None, **kwargs) -> Member:
         if self.token is None:
             raise AuthorizationError()
         
-        if not type(member_id) is Member:
-            for key, value in kwargs.items():
-                kwargs = await member_value(kwargs=kwargs, key=key, value=value)
-        else:
-            kwargs = member_id.json()
+        if isinstance(member, Member) and not kwargs:
+            kwargs = member.json()
             del kwargs['id']
             del kwargs['created']
+        elif isinstance(member, Member) and kwargs:
+            kwargs_ = member.json()
+            kwargs = kwargs_.update(kwargs)
+        else:
+            for key, value in kwargs.items():
+                kwargs = await member_value(kwargs=kwargs, key=key, value=value)
         
         payload = json.dumps(kwargs, ensure_ascii=False)
         
@@ -525,7 +532,7 @@ class Client:
                 if response.status_code != 204: # catch-all
                     raise HTTPError(response.status_code)
 
-    def get_switches(self, system=None) -> Union[List[Switch], AsyncGenerator[Switch,None]]:
+    def get_switches(self, system: Optional[System]=None) -> Union[List[Switch], AsyncGenerator[Switch,None]]:
         """Fetches the switch history of a system.
         
         Args:
@@ -598,7 +605,7 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _new_switch(self, members: List[Union[str, Member]]):
+    async def _new_switch(self, members: List[Union[str, Member]]) -> None:
         if self.token is None:
             raise AuthorizationError()
         

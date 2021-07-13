@@ -40,7 +40,7 @@ def test_get_member():
     test_member = pk.get_member("gaznz")
         
     try:
-        assert test_member.deep_equal(other=reference_member) is True
+        assert test_member._deep_equal(other=reference_member) is True
     except AssertionError:
         for key, value in test_member.__dict__.items():
             if key not in ("id", "created"):
@@ -93,7 +93,7 @@ def test_edit_member():
                             pronoun_privacy=m.pronoun_privacy, metadata_privacy=m.metadata_privacy)
         
     try:
-        assert member.deep_equal(other=m, new_member=True) is True
+        assert member._deep_equal(other=m, new_member=True) is True
     except AssertionError:
         for key, value in member.__dict__.items():
             if key not in ("id", "created"):
@@ -141,7 +141,7 @@ def test_new_member():
                            metadata_privacy=new_member.metadata_privacy, 
                            avatar_privacy=new_member.avatar_privacy)
     try:
-        assert member.deep_equal(other=new_member, new_member=True) is True
+        assert member._deep_equal(other=new_member, new_member=True) is True
     except AssertionError:
         for key, value in member.__dict__.items():
             if key not in ("id", "created"):

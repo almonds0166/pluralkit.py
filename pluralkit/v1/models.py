@@ -65,7 +65,7 @@ class Color(colour.Color):
                 return Color(c)
 
         raise TypeError(
-            f"Argument `c` must be of type colour.Color or str; received {type(c)=}."
+            f"Argument `c` must be of type colour.Color or str; received c={type(c)}."
         )
 
     @staticmethod
@@ -102,7 +102,7 @@ class Timezone:
         if len(args) != 1 or len(kwargs) != 0:
             raise TypeError(
                 f"Timezone is initialized with exactly one positional argument `tz`; " \
-                f"received {len(args)=} and {len(kwargs)=}"
+                f"received len(args)={len(args)} and len(args)={len(kwargs)}"
             )
         if isinstance(args[0], tzinfo):
             self.tz = args[0]
@@ -141,7 +141,7 @@ class Timezone:
 
         raise TypeError(
             f"Argument `tz` must be of type Timezone, tzinfo, or str; " \
-            f"received {type(tz)=}."
+            f"received type(tz)={type(tz)}."
         )
 
     @staticmethod
@@ -295,7 +295,7 @@ class Timestamp:
 
         raise TypeError(
             f"Argument `ts` must be of type Timestamp, datetime.datetime, or str; " \
-            f"received {type(ts)=}."
+            f"received type(ts)={type(ts)}."
         )
 
     @staticmethod
@@ -373,7 +373,7 @@ class Birthday(Timestamp):
 
         raise TypeError(
             f"Argument `bd` must be None or of type Birthday, datetime.datetime, or str; " \
-            f"received {type(bd)=}."
+            f"received type(bd)={type(bd)}."
         )
 
     @staticmethod
@@ -491,7 +491,7 @@ class ProxyTags:
         return self._proxy_tags[index]
     
     def __eq__(self, other):
-        return self._proxy_tags == other._proxy_tags
+        return set(self._proxy_tags) == set(other._proxy_tags)
     
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -600,7 +600,7 @@ class System:
     def __ne__(self, other):
         return not self.__eq__(other)
     
-    def deep_equal(self, other, ignore_id=False) -> bool:
+    def _deep_equal(self, other, ignore_id=False) -> bool:
         if ignore_id is False:
             return self.__dict__ == other.__dict__
         elif ignore_id is True:
@@ -772,7 +772,7 @@ class Member:
     def __ne__(self, other):
         return not self.__eq__(other)
     
-    def deep_equal(self, other, new_member=False) -> bool:
+    def _deep_equal(self, other, new_member=False) -> bool:
         if new_member is False:
             return self.__dict__ == other.__dict__
         elif new_member is True:

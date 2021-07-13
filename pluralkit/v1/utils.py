@@ -74,13 +74,13 @@ async def member_value(kwargs, key, value):
     elif key == "keep_proxy":
         if not isinstance(value, bool):
             raise ValueError(
-                f"Keyword arg `keep_proxy` must be a boolean value; received {type(key)=}."
+                f"Keyword arg `keep_proxy` must be a boolean value; received type(key)={type(key)}."
             )
     elif key in MEMBER_ATTRS [9:]:
         if not value in ("public", "private", None) and not value in Privacy:
             raise ValueError(
                 f"Keyword arg `{key}` must be in (None, 'public', 'private') or a Privacy; " \
-                f"instead was {value=}."
+                f"instead was value={value}."
             )
         if value in Privacy:
             kwargs[key] = value.value # convert Privacy enum to strt

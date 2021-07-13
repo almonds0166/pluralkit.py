@@ -34,7 +34,7 @@ def test_get_system():
     
     system = pk.get_system("exmpl")
     
-    assert system.deep_equal(expected_system)
+    assert system._deep_equal(expected_system)
 
 def test_get_members():
     pk.get_members()
@@ -63,5 +63,3 @@ def test_get_fronters():
 
 def test_get_switches():
     pk.get_switches()
-
-test_edit_system()
