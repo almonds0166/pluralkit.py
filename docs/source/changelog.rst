@@ -29,7 +29,7 @@ There are two main ways to query version information about the library.
 
 .. _whats_new:
 
-v0.1.2 (July 12, 2021)
+v0.1.2 (July 13, 2021)
 ----------------------
 
 New features
