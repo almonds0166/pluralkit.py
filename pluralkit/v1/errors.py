@@ -1,4 +1,6 @@
 
+from http.client import responses as RESPONSE_CODES
+
 __all__ = (
     "PluralKitException",
     "AuthorizationError",
@@ -31,7 +33,7 @@ class SystemNotFound(PluralKitException):
     """
     def __init__(self, id):
         super().__init__(
-            f"System with the given ID (`{id}`) was not found."
+            f"System with the given ID ({id}) was not found."
         )
 
 class MemberNotFound(PluralKitException):
@@ -39,7 +41,7 @@ class MemberNotFound(PluralKitException):
     """
     def __init__(self, id):
         super().__init__(
-            f"Member with the given ID (`{id}`) was not found."
+            f"Member with the given ID ({id}) was not found."
         )
 
 class DiscordUserNotFound(PluralKitException):
@@ -47,16 +49,16 @@ class DiscordUserNotFound(PluralKitException):
     """
     def __init__(self, id):
         super().__init__(
-            f"The given user ID (`{id}`) does not seem to correspond to any systems."
+            f"The given Discord user ID ({id}) does not seem to correspond to any systems."
         )
 
 class AccessForbidden(PluralKitException):
-    """Thrown when a system's list of members is private.
+    """Thrown when attempting to access private info.
     """
     def __init__(self):
         super().__init__((
-            "The system's member list is private and the client authorization token is either "
-            "missing, invalid, or does not correspond to the system."
+            "The system's requested info is private and the client authorization token is either "
+            "missing, invalid, or does not correspond to the requested system."
         ))
 
 class InvalidKwarg(PluralKitException):
@@ -88,9 +90,10 @@ class InvalidBirthday(PluralKitException):
         )
 
 class HTTPError(PluralKitException):
-    """Todo.
+    """Thrown when pluralkit.py receives an unexpected status code.
     """
-    def __init__(self, error):
+    def __init__(self, status_code):
         super().__init__(
-            f"An error was raised: {error}"
+            f"Received unexpected HTTP code '{status_code} {RESPONSE_CODES[status_code]}'. " \
+            f"Check your connection or whether PluralKit's API is up."
         )
