@@ -93,6 +93,8 @@ Privacy
 
       Equivalent to `Privacy.PUBLIC` in effect. Returned for member and system privacy fields if the client does not have an authorization token set.
 
+.. _exceptions:
+
 Exceptions
 ----------
 

@@ -1,8 +1,12 @@
 # pluralkit.py
 
+[![PyPi Version](https://img.shields.io/pypi/v/pluralkit.svg)](https://pypi.python.org/pypi/pluralkit/)
+[![Documentation Status](https://readthedocs.org/projects/pluralkit/badge/?version=latest)](https://pluralkit.readthedocs.io/en/latest/?badge=latest)
+[![Discord server invite](https://discord.com/api/guilds/858455002107871233/embed.png)](https://discord.gg/secvguatbC)
+
 Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
 
-Currently supports PluralKit's v1.0 API.
+Currently supports PluralKit's v1 API.
 
 ## Installing
 
@@ -73,6 +77,5 @@ The client can be used without one's [PluralKit authorization token](https://plu
 
 ## Todo
 
-* Tidy up error handling
 * Test timezone mechanics
 * Prepare for API v2

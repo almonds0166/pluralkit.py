@@ -19,7 +19,7 @@ There are two main ways to query version information about the library.
 
    - ``minor`` is a minor release, representing some new features on the given major release.
 
-   - ``build`` is incremented for each latest build, revision, or commit of a minor release.
+   - ``build`` is incremented for each latest build, patch, or revision of a minor release.
 
 .. data:: __version__
 
@@ -28,6 +28,22 @@ There are two main ways to query version information about the library.
 .. Most common headings would be New features, Fixes, Improvements
 
 .. _whats_new:
+
+v0.1.2 (July 12, 2021)
+----------------------
+
+New features
+~~~~~~~~~~~~
+
+- Added rate limiting (at most 1 request per half second).
+- Added rich comparison to the `Timestamp` class, so Timestamp objects can be compared with other Timestamp objects or with `datetime.datetime` objects.
+- `Client.get_fronters` can now accept Discord IDs.
+- `Client.get_switches` can now accept Discord IDs.
+
+Improvements
+~~~~~~~~~~~~
+
+- Improved clarity & accuracy of pluralkit.py :ref:`exceptions <exceptions>`.
 
 v0.1.0 (July 12, 2021)
 ----------------------
