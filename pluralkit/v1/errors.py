@@ -9,7 +9,6 @@ __all__ = (
     "DiscordUserNotFound",
     "AccessForbidden",
     "InvalidKwarg",
-    "InvalidColor",
     "InvalidBirthday",
     "HTTPError"
 )
@@ -69,15 +68,6 @@ class InvalidKwarg(PluralKitException):
         super().__init__(
             f"A keyworded argument was passed that will not be accepted by the server: `{key}`"
         )
-
-class InvalidColor(PluralKitException):
-    """
-    Thrown when an invalid color is passed in a POST or PATCH request
-    """
-    def __init__(self, color):
-        super().__init__(
-                f"Given value is not a string or Color object: `{color}`"
-            )
 
 class InvalidBirthday(PluralKitException):
     """

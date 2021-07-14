@@ -68,7 +68,9 @@ async def member_value(kwargs, key, value):
             try:
                 datetime.datetime.strptime(value, r"%Y-%m-%d")
             except:
-                raise InvalidBirthday(value)
+                raise ValueError(
+                    f"`{value}` is not a valid yyyy-mm-dd date or datetime.datetime object"
+                )
         elif isinstance(value, Birthday):
             kwargs[key] = value.json()
     elif key == "keep_proxy":

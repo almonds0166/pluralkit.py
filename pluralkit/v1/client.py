@@ -711,7 +711,7 @@ class Client:
         """Creates a new switch.
         
         Note:
-            The system's `authorization token`_ must be set in order to use :meth:`delete_member`.
+            The system's `authorization token`_ must be set in order to use this method.
         
         Args:
             members (Sequence[Union[Member,str]]): A list of members that will be present in the

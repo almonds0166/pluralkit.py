@@ -164,8 +164,8 @@ class Timezone:
 class Timestamp:
     """Represents a PluralKit UTC timestamp.
 
-    This class works by wrapping around a `datetime` object. Use ts.datetime to access it, for any
-    `Timestamp` ts.
+    This class works by wrapping around a `datetime` object. Use ``ts.datetime`` to access it, for
+    any `Timestamp` ``ts``.
 
     This class may be initialized in the same way that a `datetime` object is. It may also take a
     `datetime` object directly.

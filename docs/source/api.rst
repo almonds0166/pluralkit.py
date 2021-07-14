@@ -123,11 +123,6 @@ InvalidBirthday
 
 .. autoclass:: errors.InvalidBirthday
 
-InvalidColor
-~~~~~~~~~~~~
-
-.. autoclass:: errors.InvalidColor
-
 InvalidKwarg
 ~~~~~~~~~~~~
 

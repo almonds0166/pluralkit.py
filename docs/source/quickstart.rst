@@ -189,7 +189,7 @@ Member
    >>> member
    Member('fghij')
 
-Note, as of writing, there is no system with ID ``fghij``, this is just for the sake of example.
+Note, as of writing, there is no member with ID ``fghij``, this is just for the sake of example.
 
 Member has the following useful attributes:
 
