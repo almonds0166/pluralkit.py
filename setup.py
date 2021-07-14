@@ -1,7 +1,9 @@
 
 from setuptools import setup, find_packages
 
-from pluralkit import __version__
+import sys
+sys.path.append("./pluralkit")
+from __version__ import __version__
 
 # Thanks to Mark Smith (@Judy2k)'s very helpful talk about PyPI
 # https://youtu.be/GIF3LaRqgXo?t=297
