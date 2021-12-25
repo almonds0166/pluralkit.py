@@ -797,13 +797,7 @@ class Member:
             self.created = None
         self.birthday = Birthday.parse(birthday)
         self.color = Color.parse(color)
-        
-        if self.color is not None:
-            self.color = self.color.json()
-            
-        if self.birthday is not None:
-            self.birthday = self.birthday.json()
-            
+
         self.display_name = display_name
         self.description = description
         self.pronouns = pronouns
@@ -900,9 +894,9 @@ class Member:
             "display_name": self.display_name,
             "description": self.description,
             "description_privacy": self.description_privacy.value,
-            "color": self.color,
-            "birthday": self.birthday,
-            "birthday_privacy": self.birthday_privacy.value,
+						"color": self.color.json() if self.color is not None else None,
+						"birthday": self.birthday.json() if self.birthday is not None else None,
+						"birthday_privacy": self.birthday_privacy.value,
             "pronouns": self.pronouns,
             "pronoun_privacy": self.pronoun_privacy.value,
             "avatar_url": self.avatar_url,
