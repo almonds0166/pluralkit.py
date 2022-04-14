@@ -1,4 +1,5 @@
 
+from dataclasses import dataclass
 from string import ascii_lowercase as ALPHABET
 from enum import Enum
 from datetime import datetime, timedelta, tzinfo
@@ -36,21 +37,14 @@ class Model:
     """Base class for all models.
     """
 
-    # @classmethod
-    # def from_json(cls, obj: dict):
-    #     """Convert the given JSON object to an instance of this model class.
-
-    #     Throws a TypeError if the given object is invalid for the given class.
-
-    #     Args:
-    #         obj: The JSON object to parse.
-    #     """
-    #     return Model()
-
     def json(self):
-        """Return the JSON object representing this model.
+        """Return a JSON object representing this model.
         """
-        return None
+        model = {}
+        for k, v in self.__dict__.items:
+            if not k.startswith("_"): model[k] = v
+
+        return model
 
 # IDs
 
@@ -393,38 +387,371 @@ class Timezone(Model):
 
 # Settings
 
+@dataclass
 class MemberGuildSettings(Model):
-    """
-    """
+    """Member settings for a specific server.
 
+    Keyword args:
+        member: The PluralKit member this set of settings pertains to.
+        guild: The id of the guild (server) that applies to this member's settings.
+        display_name: The member's display name in the server.
+        avatar_url: The URL of the member's avatar image in the server.
+    """
+    member: MemberId
+    guild: int
+    display_name: Optional[str]
+    avatar_url: Optional[str]
+
+@dataclass
 class SystemGuildSettings(Model):
+    """System settings for a specific server.
+
+    Keyword args:
+        system: The PluralKit system this set of settings pertains to.
+        guild: The id of the guild (server) that applies to this member's settings.
+        proxying_enabled: Whether proxying is enabled in the given server.
+        tag: The system's tag (appended to the server username) for the given server.
+        tag_enabled: Whether or not the system tag is shown in this server.
     """
-    """
+    system: SystemId
+    guild: int
+    proxying_enabled: bool
+    tag_enabled: bool
+    tag: Optional[str]
 
 # Proxy tags
 
 class ProxyTag(Model):
+    """Represents a single PluralKit proxy tag.
+
+    Args:
+        prefix: Prefix that will enclose proxied messages.
+        suffix: Suffix that will enclose proxied messages.
+
+    Keyword args:
+        proxy_tag: Dictionary representing a proxy tag. Must have at least one of ``prefix`` or
+            ``suffix`` as keys. The ``prefix`` and ``suffix`` args will overrule this dict.
+
+    Important:
+        At least one of the ``suffix`` or ``prefix`` arguments must be passed.
+    
+    Attributes:
+        prefix (Optional[str]): Prefix that will enclose proxied messages.
+        suffix (Optional[str]): Suffix that will enclose proxied messages.
     """
-    """
+    def __init__(self,
+        prefix: Optional[str]=None,
+        suffix: Optional[str]=None,
+        *,
+        proxy_tag: Dict[str,str],
+    ):
+
+        # FLAG: Add proxy_tag arg
+
+        assert prefix or suffix, \
+            "A valid proxy tag must have at least one of the prefix or suffix defined."
+        self.prefix = prefix
+        self.suffix = suffix
+    
+    def __eq__(self, other):
+        return self.prefix == other.prefix and self.suffix == other.suffix
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        prefix = "" if not self.prefix else f"prefix={repr(self.prefix)}"
+        suffix = "" if not self.suffix else f"suffix={repr(self.suffix)}"
+        attrs = ",".join(a for a in (prefix, suffix) if a)
+        return (
+            f"{self.__class__.__name__}({attrs})"
+        )
+
+    def match(self, message: str) -> bool:
+        """Determine if a given message would be proxied under this proxy tag.
+        
+        Args:
+            message: Message to parse.
+        """
+        message = message.strip()
+        return (True if not self.prefix else message.startswith(self.prefix)) \
+            and (True if not self.suffix else message.endswith(self.suffix))
+
+    def json(self) -> Dict[str,Optional[str]]:
+        """Return the JSON object representing this proxy tag as a Python `dict`.
+        """
+        return {
+            "prefix": self.prefix,
+            "suffix": self.suffix,
+        }
 
 class ProxyTags(Model):
-    """
-    """
+    """Represents a set of PluralKit proxy tags.
 
-# Member, System, Group, Switch
+    Hint:
+        ProxyTags objects can be iterated or indexed to yield its underlying `ProxyTag` objects.    
+    
+    Args:
+        proxy_tags: A sequence of `ProxyTag` objects.
+    """
+    def __init__(self, proxy_tags: Optional[Generator[ProxyTag,None,None]]=None):
+        self._proxy_tags: Tuple[ProxyTag,...]
+        if proxy_tags is None:
+            self._proxy_tags = tuple()
+        else:
+            self._proxy_tags = tuple(proxy_tags)
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{len(self._proxy_tags)}>"
+
+    def __iter__(self):
+        for proxy_tag in self._proxy_tags:
+            yield proxy_tag
+
+    def __getitem__(self, index):
+        return self._proxy_tags[index]
+    
+    def __eq__(self, other):
+        return set(self._proxy_tags) == set(other._proxy_tags)
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def match(self, message: str) -> bool:
+        """Determine if a given message would be proxied under this set of proxy tags.
+        
+        Args:
+            message: Message to parse.
+        """
+        return any(proxy_tag.match(message) for proxy_tag in self)
+
+    def json(self) -> List[Dict[str,str]]:
+        """Return the JSON object representing this proxy tag as a list of Python `dict`.
+        """
+        return [proxy_tag.json() for proxy_tag in self]
+
+# Member, System, Group, Switch, and Message
+
+@dataclass
 class Member(Model):
+    """Represents a PluralKit system member.
+
+    Attributes:
+        id_ (str): The member's five-letter lowercase ID.
+        name (str): The member's name.
+        created (Timestamp): The member's creation date.
+        name_privacy (Privacy): The member's name privacy.
+        display_name (Optional[str]): The member's display name.
+        description (Optional[str]): The member's description.
+        description_privacy (Privacy): The member's description privacy.
+        color (Optional[Color]): The member's color.
+        birthday (Optional[Birthday]): The member's birthdate.
+        birthday_privacy (Privacy): The member's birthday privacy.
+        pronouns (Optional[str]): The member's pronouns.
+        pronoun_privacy (Privacy): The member's pronouns privacy.
+        avatar_url (Optional[str]): The member's avatar URL.
+        avatar_privacy (Privacy): The member's avatar privacy.
+        keep_proxy (bool): Whether the member's proxy tags remain in the proxied message (``True``)
+            or not (``False``).
+        metadata_privacy (Privacy): The member's metadata (eg. creation timestamp, message count,
+            etc.) privacy.
+        proxy_tags (ProxyTags): The member's proxy tags.
+        visibility (Privacy): The visibility privacy setting of the member.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    """
+    id_: str
+    name: str
+    created: Timestamp
+    name_privacy: Privacy
+    display_name: Optional[str]
+    description: Optional[str]
+    description_privacy: Privacy
+    color: Optional[Color]
+    birthday: Optional[Birthday]
+    birthday_privacy: Privacy
+    pronouns: Optional[str]
+    pronoun_privacy: Privacy
+    avatar_url: Optional[str]
+    avatar_privacy: Privacy
+    keep_proxy: bool
+    metadata_privacy: Privacy
+    proxy_tags: Optional[ProxyTags]
+    visibility: Privacy
+
+    def __str__(self):
+        return self.id_
+    
+    def __eq__(self, other):
+        return self.id_ == other.id_
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class System(Model):
+    """Represents a PluralKit system.
+
+    Attributes:
+        id_ (`SystemID`): The system's five-character lowercase ID.
+        uuid (str): The system's uinque universal identifier.
+        name (Optional[str]): The name of the system.
+        description (Optional[str]): The description of the system.
+        tag (Optional[str]): The system's tag appended to display names.
+        pronouns (Optional[str]): The system's pronouns.
+        avatar_url (Optional[str]): The system's avatar URL.
+        banner (Optional[str]): The (publically accessible) URL for the system's banner.
+        tz (Timezone): The system's tzdb timezone.
+        created (Timestamp): The system's timestamp at creation.
+        description_privacy (Privacy): The system's description privacy.
+        pronoun_privacy (Privacy): The system's pronouns privacy.
+        member_list_privacy (Privacy): The system's member list privacy.
+        group_list_privacy (Privacy): The system's group list privacy.
+        front_privacy (Privacy): The system's fronting privacy.
+        front_history_privacy (Privacy): The system's fronting history privacy.
+        color (`Color`): The system's color.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    """
+    id_: SystemId
+    uuid: str
+    created: Timestamp
+    name: Optional[str]
+    description: Optional[str]
+    tag: Optional[str]
+    avatar_url: Optional[str]
+    tz: Timezone
+    description_privacy: Privacy
+    pronoun_privacy: Privacy
+    member_list_privacy: Privacy
+    group_list_privacy: Privacy
+    front_privacy: Privacy
+    front_history_privacy: Privacy
+    pronouns: Optional[str]
+    banner: Optional[str]
+    color: Optional[Color]
+
+    def __str__(self):
+        return self.id_
+    
+    def __eq__(self, other):
+        return self.id_ == other.id_
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 class Group(Model):
+    """Represents a PluralKit system group
+
+    Keyword args:
+        id_: PluralKit group ID.
+        name: Name of the group.
+        display_name: Group display name.
+        description: Group description.
+        icon: (Publically accessible) URL of group icon.
+        banner: (Publically accessible) URL of group banner.
+        color: Group color.
     """
-    """
+    id_: GroupId
+    uuid: str
+    name: str
+    display_name: Optional[str]
+    description: Optional[str]
+    icon: Optional[str]
+    banner: Optional[str]
+    color: Color
+    name_privacy: Privacy
+    description_privacy: Privacy
+    icon_privacy: Privacy
+    list_privacy: Privacy
+    metadata_privacy: Privacy
+    visibility: Privacy
+
+    def __str__(self):
+        return self.id_
+    
+    def __eq__(self, other):
+        return self.id_ == other.id_
 
 class Switch(Model):
+    """Represents a switch event.
+
+    Args:
+        uuid: Switch universal identifier.
+        timestamp: Timestamp of the switch. May be a string formatted as
+            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
+            `Timestamp`, or a `datetime`_.
+        members: Members involved. May be a list of the five-letter member IDs as strings, or a
+            list of `Member` models, though cannot be mixed.
+
+    Attributes:
+        uuid: Switch universal identifier.
+        timestamp (Timestamp): Timestamp of the switch.
+        members (Union[Sequence[str],Sequence[Member]]): Members involved.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
+    def __init__(self, *,
+        uuid: str,
+        timestamp: Union[Timestamp,str],
+        members: Union[Sequence[str],Sequence[Member]]
+    ):
+        self.uuid = uuid
+        self.timestamp = Timestamp.parse(timestamp)
+
+        if members is None or len(members) == 0:
+            self.members = []
+        else:
+            self.members = [member for member in members]
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.timestamp}>"
+    
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+class Message(Model):
+    """Represents a proxied message.
+
+    Attributes:
+        timestamp (Timestamp): Timestamp of the message.
+        id_ (int): The ID of the Discord message sent by the webhook.
+        original (int): The ID of the (presumably deleted) original Discord message sent by the
+            account.
+        sender (int): The user ID of the account that sent the message.
+        channel (int): The ID of the channel the message was sent to.
+        system (System): The system that proxied the message.
+        member (Member): The member that proxied the message.
+
+    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
+    def __init__(self, *,
+        timestamp: Timestamp,
+        id_: int,
+        original: int,
+        sender: int,
+        channel: int,
+        system: System,
+        member: Member
+    ):
+        self.id_ = id_
+        self.original = int(original)
+        self.sender = int(sender)
+        self.channel = int(channel)
+        self.system = system
+        self.member = member
+
+        self.timestamp = Timestamp.parse(timestamp)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.id})"
+    
+    def __eq__(self, other):
+        return self.id == other.id
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
