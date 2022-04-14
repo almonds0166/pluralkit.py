@@ -21,9 +21,11 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   source/api
    source/quickstart
+   source/v2/api
    source/changelog
+
+Deprecated: :ref:`pluralkit.py's API reference for PluralKit's **v1** API <v1_ref>`
 
 Links
 -----
