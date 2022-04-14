@@ -1,8 +1,20 @@
 
 from .models import (
     Color, Timezone, Timestamp, Birthday,
-    MemberGuildSettings, SystemGuildSettings,
+    Privacy,
+    
     ProxyTag, ProxyTags,
-    MemberID, SystemID, GroupID, SwitchID,
-    Member, System, Group, Switch,
+    
+    MemberGuildSettings,
+    SystemGuildSettings,
+
+    MemberId, SystemId, GroupId,
+
+    Member,
+    System,
+    Group,
+    Switch,
+    Message,
+
+    Model, PluralKitId,
 )

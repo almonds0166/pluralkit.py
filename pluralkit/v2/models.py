@@ -8,6 +8,7 @@ from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
+    Generator,
 )
 
 import pytz
@@ -23,14 +24,6 @@ class Privacy(Enum):
     PRIVATE = "private"
     #UNKNOWN = None # legacy, effectively resets privacy to "public"
 
-class AutoproxyMode(Enum):
-    """Represents a system's autoproxy mode for `SystemGuildSettings`.
-    """
-    OFF = 1
-    FRONT = 2
-    LATCH = 3
-    MEMBER = 4
-
 # Base class for all models
 
 class Model:
@@ -42,7 +35,10 @@ class Model:
         """
         model = {}
         for k, v in self.__dict__.items:
-            if not k.startswith("_"): model[k] = v
+            if not k.startswith("_"):
+                if hasattr(v, "json"):
+                    # recurse
+                    model[k] = v.json()
 
         return model
 
@@ -52,11 +48,11 @@ class PluralKitId(Model):
     """Base class for PluralKit IDs
     """
     id_: str
-    uuid: str
+    uuid: Optional[str]
 
     __slots__ = ["id_", "uuid"]
 
-    def __init__(self, id_, uuid):
+    def __init__(self, id_, uuid=None):
         assert len(id_) == 5 and all(c in ALPHABET for c in id_), \
             f"{self.CONTEXT} ID should be a five-character lowercase string"
 
@@ -68,10 +64,10 @@ class PluralKitId(Model):
         raise AttributeError(msg)
 
     def __str__(self):
-        return f"{self.id_}"
+        return f"{self.uuid}" if self.uuid is not None else f"{self.id_}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.id_}, {self.uuid})"
+        return f"{self.__class__.__name__}({self.id_!r}, {self.uuid!r})"
 
     json = __str__
 
@@ -84,11 +80,6 @@ class SystemId(PluralKitId):
     """System IDs
     """
     CONTEXT = "System"
-
-class SwitchId(PluralKitId):
-    """Switch IDs
-    """
-    CONTEXT = "Switch"
 
 class GroupId(PluralKitId):
     """Group IDs
@@ -120,8 +111,10 @@ class Color(colour.Color, Model):
 
         colour.Color.__init__(self, *args, *kwargs)
 
-    def json(self):
+    def __str__(self):
         return self.hex_l[1:]
+
+    json = __str__
 
 class Timestamp(Model):
     """Represents a PluralKit UTC timestamp.
@@ -560,7 +553,7 @@ class Member(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    id_: str
+    id_: Optional[str]
     name: str
     created: Timestamp
     name_privacy: Privacy
@@ -592,8 +585,7 @@ class System(Model):
     """Represents a PluralKit system.
 
     Attributes:
-        id_ (`SystemID`): The system's five-character lowercase ID.
-        uuid (str): The system's uinque universal identifier.
+        id_ (`SystemId`): The system's five-character lowercase ID.
         name (Optional[str]): The name of the system.
         description (Optional[str]): The description of the system.
         tag (Optional[str]): The system's tag appended to display names.
@@ -613,7 +605,6 @@ class System(Model):
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     id_: SystemId
-    uuid: str
     created: Timestamp
     name: Optional[str]
     description: Optional[str]
@@ -642,23 +633,22 @@ class System(Model):
 class Group(Model):
     """Represents a PluralKit system group
 
-    Keyword args:
-        id_: PluralKit group ID.
-        name: Name of the group.
-        display_name: Group display name.
-        description: Group description.
-        icon: (Publically accessible) URL of group icon.
-        banner: (Publically accessible) URL of group banner.
-        color: Group color.
+    Attributes:
+        id_ (`GroupId`): PluralKit group ID.
+        name (str): Name of the group.
+        display_name (Optional[str]): Group display name.
+        description (Optional[str]): Group description.
+        icon (Optional[str]): (Publically accessible) URL of group icon.
+        banner (Optional[str]): (Publically accessible) URL of group banner.
+        color (Optional[Color]): Group color.
     """
-    id_: GroupId
-    uuid: str
+    id_: Optional[GroupId]
     name: str
     display_name: Optional[str]
     description: Optional[str]
     icon: Optional[str]
     banner: Optional[str]
-    color: Color
+    color: Optional[Color]
     name_privacy: Privacy
     description_privacy: Privacy
     icon_privacy: Privacy
@@ -675,16 +665,8 @@ class Group(Model):
 class Switch(Model):
     """Represents a switch event.
 
-    Args:
-        uuid: Switch universal identifier.
-        timestamp: Timestamp of the switch. May be a string formatted as
-            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
-            `Timestamp`, or a `datetime`_.
-        members: Members involved. May be a list of the five-letter member IDs as strings, or a
-            list of `Member` models, though cannot be mixed.
-
     Attributes:
-        uuid: Switch universal identifier.
+        uuid (Optional[str]): Switch's unique universal identifier (uuid).
         timestamp (Timestamp): Timestamp of the switch.
         members (Union[Sequence[str],Sequence[Member]]): Members involved.
 
@@ -692,7 +674,7 @@ class Switch(Model):
     """
     def __init__(self, *,
         uuid: str,
-        timestamp: Union[Timestamp,str],
+        timestamp: Timestamp,
         members: Union[Sequence[str],Sequence[Member]]
     ):
         self.uuid = uuid
