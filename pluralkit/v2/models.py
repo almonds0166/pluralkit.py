@@ -47,16 +47,22 @@ class Model:
 class PluralKitId(Model):
     """Base class for PluralKit IDs
     """
-    id_: str
     uuid: Optional[str]
+    id: Optional[str]
 
-    __slots__ = ["id_", "uuid"]
+    __slots__ = ["uuid", "id"]
 
-    def __init__(self, id_, uuid=None):
-        assert len(id_) == 5 and all(c in ALPHABET for c in id_), \
+    def _check_id(self, id):
+        assert len(id) == 5 and all(c in ALPHABET for c in id), \
             f"{self.CONTEXT} ID should be a five-character lowercase string"
 
-        object.__setattr__(self, "id_", id_)
+    def __init__(self, uuid=None, id=None):
+        if uuid is None and id is None:
+            raise ValueError(f"{self.CONTEXT} ID object must include at least one of: uuid, id")
+
+        if id is not None: self._check_id(id)
+
+        object.__setattr__(self, "id", id)
         object.__setattr__(self, "uuid", uuid)
 
     def __setattr__(self, name, value):
@@ -64,10 +70,10 @@ class PluralKitId(Model):
         raise AttributeError(msg)
 
     def __str__(self):
-        return f"{self.uuid}" if self.uuid is not None else f"{self.id_}"
+        return f"{self.uuid}" if self.uuid is not None else f"{self.id}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.id_!r}, {self.uuid!r})"
+        return f"{self.__class__.__name__}({self.uuid!r}, {self.id!r})"
 
     json = __str__
 
@@ -85,6 +91,24 @@ class GroupId(PluralKitId):
     """Group IDs
     """
     CONTEXT = "Group"
+
+class SwitchId(PluralKitId):
+    """Switch IDs
+
+    Switches don't have five-letter IDs, so this must be given the switch UUID.
+    """
+    uuid: str
+    CONTEXT = "Switch"
+    __slots__ = ["uuid"]
+
+    def __init__(self, uuid):
+        if uuid is None:
+            raise ValueError(f"{self.CONTEXT} ID object must include uuid")
+
+        object.__setattr__(self, "uuid", uuid)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.uuid!r})"
 
 # Primitives
 
