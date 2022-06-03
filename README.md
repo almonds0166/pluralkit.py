@@ -4,9 +4,9 @@
 [![Documentation Status](https://readthedocs.org/projects/pluralkit/badge/?version=latest)](https://pluralkit.readthedocs.io/en/latest/?badge=latest)
 [![Discord server invite](https://discord.com/api/guilds/858455002107871233/embed.png)](https://discord.gg/secvguatbC)
 
-Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
+Python wrapper for [PluralKit](https://pluralkit.me/)'s API v1.
 
-Currently supports PluralKit's v1 API.
+> :warning: **The [v1 PluralKit API](https://pluralkit.me/api/changelog/) is deprecated**, so please do not try to use this v1 Python API. (We're currently working on writing the v2 Python API. Visit [the Discord server](https://discord.gg/secvguatbC) for more info.)
 
 ## Installing
 
