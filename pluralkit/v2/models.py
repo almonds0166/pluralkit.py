@@ -953,10 +953,7 @@ class Switch(Model):
             self.members = [member for member in members]
 
     def __str__(self):
-        fronters = ''
-        for member in self.members :
-            fronters += self.members[0]['name'] + ', '
-        return fronters
+        return self.members
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
