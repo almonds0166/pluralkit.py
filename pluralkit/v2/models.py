@@ -174,10 +174,10 @@ class Color(colour.Color, Model):
             f"Argument `c` must be of type colour.Color or str; received c={type(c)}."
         )
 
-class Timestamp(Model):
+class Timestamp:
     """Represents a PluralKit UTC timestamp.
 
-    This class works by wrapping around a `datetime` object. To access it, use ``ts.datetime``, for
+    This class works by wrapping around a `datetime` object. Use ``ts.datetime`` to access it, for
     any `Timestamp` ``ts``.
 
     This class may be initialized in the same way that a `datetime` object is. It may also take a
@@ -193,31 +193,20 @@ class Timestamp(Model):
         microsecond: int=0
     ):
         if dt is None and any(arg is None for arg in (year, month, day)):
-            msg = (
-                f"{self.__class__.__name__} is missing required arguments. Either provide a "
-                f"datetime.datetime or ISO 8601 formatted string via the first positional "
-                f"argument, or provide the year, month, and day through the respective keyword "
-                f"arguments."
+            raise TypeError(
+                f"{self.__class__.__name__} is missing required arguments. Either provide a " \
+                f"datetime.datetime via the first positional argument, or provide the year, " \
+                f"month, and day through the respective keyword arguments."
             )
-            raise TypeError(msg)
 
         if dt is not None:
-            if isinstance(dt, datetime):
-                if dt.tzinfo is not None:
-                    self.datetime = dt.astimezone(pytz.utc)
-                else:
-                    self.datetime = dt.replace(tzinfo=pytz.utc)
-            elif isinstance(dt, str):
-                self.datetime = datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%fZ")
+            if dt.tzinfo is not None:
+                self.datetime = dt.astimezone(pytz.utc)
             else:
-                msg = (
-                    f"{self.__class__.__name__} takes either a datetime.datetime object or "
-                    f"ISO 8601 formatted string as the first positional argument. Given "
-                    f"type(dt)={type(dt)!r}"
-                )
-                raise TypeError(msg)
+                self.datetime = dt.replace(tzinfo=pytz.utc)
 
         else:
+            # mypy complains here
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
             self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
@@ -349,26 +338,6 @@ class Timestamp(Model):
     def microsecond(self, value):
         self.datetime = self.datetime.replace(microsecond=value)
 
-    def json(self) -> str:
-        """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
-        """
-        return (
-            f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
-            f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
-        )
-    @staticmethod
-    def from_json(bd: str):
-        """Takes in a string (as returned by the API) and returns the corresponding `Timestamp`.
-
-        Args:
-            bd: The ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` formatted
-                string representing a PluralKit API timestamp.
-
-        Returns:
-            Timestamp: The corresponding `Timestamp` object.
-        """
-        return Timestamp(datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ"))
-
     @staticmethod
     def parse(ts):
         """Takes in a `Timestamp`, `datetime`_, or `str`, converts to `Timestamp` as needed.
@@ -385,34 +354,39 @@ class Timestamp(Model):
 
         .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
         """
-        def __init__(self, dt: Optional[datetime]=None, *,
-            year: Optional[int]=None,
-            month: Optional[int]=None,
-            day: Optional[int]=None,
-            hour: int=0,
-            minute: int=0,
-            second: int=0,
-            microsecond: int=0
-        ):
-        
-        
-            if dt is None and any(arg is None for arg in (year, month, day)):
-                raise TypeError(
-                    f"{self.__class__.__name__} is missing required arguments. Either provide a " \
-                    f"datetime.datetime via the first positional argument, or provide the year, " \
-                    f"month, and day through the respective keyword arguments."
-                )
+        if isinstance(ts, Timestamp):
+            return ts
 
-            if dt is not None:
-                if dt.tzinfo is not None:
-                    self.datetime = dt.astimezone(pytz.utc)
-                else:
-                    self.datetime = dt.replace(tzinfo=pytz.utc)
+        if isinstance(ts, datetime):
+            return Timestamp(ts)
 
-            else:
-                # mypy complains here
-                self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
-                self.datetime = self.datetime.replace(tzinfo=pytz.utc)
+        if isinstance(ts, str):
+            return Timestamp.from_json(ts)
+
+        raise TypeError(
+            f"Argument `ts` must be of type Timestamp, datetime.datetime, or str; " \
+            f"received type(ts)={type(ts)}."
+        )
+    @staticmethod
+    def from_json(bd: str):
+        """Takes in a string (as returned by the API) and returns the corresponding `Timestamp`.
+
+        Args:
+            bd: The ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` formatted
+                string representing a PluralKit API timestamp.
+
+        Returns:
+            Timestamp: The corresponding `Timestamp` object.
+        """
+        return Timestamp(datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ"))
+
+    def json(self) -> str:
+        """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
+        """
+        return (
+            f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
+            f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
+        )
 
 class Birthday(Timestamp):
     """Represents a birthday.
@@ -942,18 +916,19 @@ class Switch(Model):
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     def __init__(self, *,
-        timestamp: Union[Timestamp,str],
+        timestamp: Timestamp,
         members: Union[Sequence[str],Sequence[Member]]
-    ):
+    ):  
+        print(timestamp)
         self.timestamp = Timestamp.parse(timestamp)
-
+        print(self.timestamp)
         if members is None or len(members) == 0:
             self.members = []
         else:
             self.members = [member for member in members]
 
     def __str__(self):
-        return self.members
+        return f"{self.__class__.__name__}<{self.timestamp}>"
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"

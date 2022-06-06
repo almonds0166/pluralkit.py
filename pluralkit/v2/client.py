@@ -144,7 +144,6 @@ class Client:
 
             # convert received json to return type
             returned = response.json()
-            print(returned)
             converted = expected_type.from_json(returned)
         # return
         return converted
