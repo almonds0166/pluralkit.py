@@ -140,6 +140,40 @@ class Color(colour.Color, Model):
 
     json = __str__
 
+    @staticmethod
+    def parse(c):
+        """Takes in a `Color`, `colour.Color`_, or str and converts to `Color` as
+        needed.
+
+        Args:
+            color (Union[Color,colour.Color,str,None]): The color, represented as a `Color`,
+                `colour.Color`_ or `str`. If a string, may either be in the format as expected by
+                PluralKit's API internally (e.g. ``00ffff``) or a color string that can be taken by
+                a Color object (e.g. ``cyan``).
+
+        Returns:
+            Optional[Color]: The `Color` object, or ``None`` if input is None.
+
+        Raises:
+            TypeError: If the given argument is neither a `Color`, `colour.Color`_, or `str`.
+
+        .. _`colour.Color`: https://pypi.org/project/colour/#instantiation
+        """
+        if c is None: return None
+
+        if isinstance(c, colour.Color):
+            return c
+
+        if isinstance(c, str):
+            if len(c) == 6 and set(c).issubset(set(string.hexdigits)):
+                return Color.from_json(c)
+            else:
+                return Color(c)
+
+        raise TypeError(
+            f"Argument `c` must be of type colour.Color or str; received c={type(c)}."
+        )
+
 class Timestamp(Model):
     """Represents a PluralKit UTC timestamp.
 
@@ -656,34 +690,98 @@ class Member(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    id_: Optional[str]
-    name: str
-    created: Timestamp
-    name_privacy: Privacy
-    display_name: Optional[str]
-    description: Optional[str]
-    description_privacy: Privacy
-    color: Optional[Color]
-    birthday: Optional[Birthday]
-    birthday_privacy: Privacy
-    pronouns: Optional[str]
-    pronoun_privacy: Privacy
-    avatar_url: Optional[str]
-    avatar_privacy: Privacy
-    keep_proxy: bool
-    metadata_privacy: Privacy
-    proxy_tags: Optional[ProxyTags]
-    visibility: Privacy
+    def __init__(self, *,
+        id: str,
+        name: str,
+        created: Union[None, Timestamp,datetime,str],
+        name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        display_name: Optional[str]=None,
+        description: Optional[str]=None,
+        description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        color: Union[Color,str,None]=None,
+        birthday: Union[Birthday,datetime,str,None]=None,
+        birthday_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        pronouns: Optional[str]=None,
+        pronoun_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        avatar_url: Optional[str]=None,
+        avatar_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        keep_proxy: bool=False,
+        metadata_privacy: Union[Privacy,str]=Privacy.PUBLIC,
+        proxy_tags: Optional[ProxyTags]=None,
+        visibility: Union[Privacy,str]=Privacy.PUBLIC
+    ):
+        self.id = id
+        self.name = name
+
+        if created is not None:
+            self.created = Timestamp.parse(created)
+        else:
+            self.created = None
+        self.birthday = Birthday.parse(birthday)
+        self.color = Color.parse(color)
+
+        self.display_name = display_name
+        self.description = description
+        self.pronouns = pronouns
+        self.avatar_url = avatar_url
+        self.keep_proxy = keep_proxy
+
+        if proxy_tags is None:
+            self.proxy_tags = ProxyTags()
+        else:
+            self.proxy_tags = proxy_tags
+
+        self.name_privacy = Privacy(name_privacy)
+        self.description_privacy = Privacy(description_privacy)
+        self.birthday_privacy = Privacy(birthday_privacy)
+        self.pronoun_privacy = Privacy(pronoun_privacy)
+        self.avatar_privacy = Privacy(avatar_privacy)
+        self.metadata_privacy = Privacy(metadata_privacy)
+        self.visibility = Privacy(visibility)
 
     def __str__(self):
-        return self.id_
+        return self.id
     
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
     
     def __ne__(self, other):
         return not self.__eq__(other)
+    @staticmethod
+    def from_json(member: Dict[str,Any]):
+        """Static method to convert a member `dict` to a `Member` object.
 
+        Args:
+            member: Dictionary representing a system, e.g. one received directly from the API. Must
+            have a value for the ``id`` and ``created`` attributes.
+
+        Returns:
+            Member: The corresponding `Member` object.
+        """
+        if not "proxy_tags" in member:
+            proxy_tags = ProxyTags()
+        else:
+            proxy_tags = ProxyTags.from_json(member["proxy_tags"])
+        return Member(
+            id=member.get("id"),
+            name=member.get("name"),
+            name_privacy=member.get("name_privacy", "public"),
+            created=member.get("created"),
+            display_name=member.get("display_name"),
+            description=member.get("description"),
+            description_privacy=member.get("description_privacy", "public"),
+            color=member.get("color"),
+            birthday=member.get("birthday"),
+            birthday_privacy=member.get("birthday_privacy", "public"),
+            pronouns=member.get("pronouns", "public"),
+            pronoun_privacy=member.get("pronoun_privacy", "public"),
+            avatar_url=member.get("avatar_url"),
+            avatar_privacy=member.get("avatar_privacy", "public"),
+            keep_proxy=member.get("keep_proxy", False),
+            metadata_privacy=member.get("metadata_privacy", "public"),
+            proxy_tags=proxy_tags,
+            visibility=member.get("visibility", "public"),
+        )
 
 class System(Model):
     """Represents a PluralKit system.

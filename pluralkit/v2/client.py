@@ -141,11 +141,12 @@ class Client:
             if code != expected_code:
                 error = error_lookups.get(code, HTTPError)()
                 raise error
-    
+
             # convert received json to return type
             returned = response.json()
+            print(returned)
             converted = expected_type.from_json(returned)
-
+            print(converted)
         # return
         return converted
 
@@ -182,7 +183,7 @@ class Client:
         return await self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}/fronters",
-            System,
+            Member,
             200,
             {
                 404: SystemNotFound,
