@@ -1,8 +1,10 @@
 
-.. currentmodule:: pluralkit
+.. currentmodule:: pluralkit.v1
 
-API reference
-=============
+.. _v1_ref:
+
+v1 pluralkit.py API reference
+=============================
 
 Client
 ------
@@ -93,47 +95,47 @@ Privacy
 
       Equivalent to `Privacy.PUBLIC` in effect. Returned for member and system privacy fields if the client does not have an authorization token set.
 
-.. _exceptions:
-
 Exceptions
 ----------
+
+.. currentmodule:: pluralkit.v1.errors
 
 PluralKitException
 ~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: errors.PluralKitException
+.. autoclass:: PluralKitException
 
 AccessForbidden
 ~~~~~~~~~~~~~~~
 
-.. autoclass:: errors.AccessForbidden
+.. autoclass:: AccessForbidden
 
 AuthorizationError
 ~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: errors.AuthorizationError
+.. autoclass:: AuthorizationError
 
 DiscordUserNotFound
 ~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: errors.DiscordUserNotFound
+.. autoclass:: DiscordUserNotFound
 
 InvalidBirthday
 ~~~~~~~~~~~~~~~
 
-.. autoclass:: errors.InvalidBirthday
+.. autoclass:: InvalidBirthday
 
 InvalidKwarg
 ~~~~~~~~~~~~
 
-.. autoclass:: errors.InvalidKwarg
+.. autoclass:: InvalidKwarg
 
 SystemNotFound
 ~~~~~~~~~~~~~~
 
-.. autoclass:: errors.SystemNotFound
+.. autoclass:: SystemNotFound
 
 MemberNotFound
 ~~~~~~~~~~~~~~
 
-.. autoclass:: errors.MemberNotFound
+.. autoclass:: MemberNotFound

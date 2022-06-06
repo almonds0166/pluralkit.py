@@ -36,6 +36,10 @@ To install the unstable version: ::
    cd pluralkit.py
    pip install -U .
 
+If you'd like to contribute, `please join the Discord server`_!
+
+.. _`please join the Discord server`: https://discord.gg/secvguatbC
+
 Basic concepts
 --------------
 
