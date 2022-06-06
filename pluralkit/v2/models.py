@@ -890,6 +890,8 @@ class System(Model):
             "front_privacy": self.front_privacy.value,
             "front_history_privacy": self.front_history_privacy.value
         }
+
+
 class Group(Model):
     """Represents a PluralKit system group
 
@@ -922,28 +924,39 @@ class Group(Model):
     def __eq__(self, other):
         return self.id_ == other.id_
 
+
 class Switch(Model):
     """Represents a switch event.
 
+    Args:
+        timestamp: Timestamp of the switch. May be a string formatted as
+            ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
+            `Timestamp`, or a `datetime`_.
+        members: Members involved. May be a list of the five-letter member IDs as strings, or a
+            list of `Member` models, though cannot be mixed.
+
     Attributes:
-        uuid (Optional[str]): Switch's unique universal identifier (uuid).
         timestamp (Timestamp): Timestamp of the switch.
         members (Union[Sequence[str],Sequence[Member]]): Members involved.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     def __init__(self, *,
-        uuid: str,
-        timestamp: Timestamp,
+        timestamp: Union[Timestamp,str],
         members: Union[Sequence[str],Sequence[Member]]
     ):
-        self.uuid = uuid
         self.timestamp = Timestamp.parse(timestamp)
 
         if members is None or len(members) == 0:
             self.members = []
         else:
             self.members = [member for member in members]
+
+    def __str__(self):
+        fronters = ''
+        for member in self.members :
+            fronters += self.members[0]['name'] + ', '
+        return fronters
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
@@ -953,6 +966,31 @@ class Switch(Model):
     
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    @staticmethod
+    def from_json(switch: Dict[str,str]):
+        """Static method to convert a switch `dict` to a `Switch` object.
+
+        Args:
+            switch: Dictionary representing a switch, e.g. one received directly from the API. Must
+            have a value for the ``members`` and ``timestamp`` attributes. See this class's
+            initializer documentation for what format those are expected to be in.
+
+        Returns:
+            Switch: The corresponding `Switch` object.
+        """
+        return Switch(
+            timestamp=switch["timestamp"],
+            members=switch["members"]
+        )
+
+    def json(self) -> Dict[str,Any]:
+        """Return Python `dict` representing this switch.
+        """
+        return {
+            "timestamp": self.timestamp.json(),
+            "members": self.members
+        }
 
 class Message(Model):
     """Represents a proxied message.

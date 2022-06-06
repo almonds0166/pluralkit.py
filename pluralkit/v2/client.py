@@ -146,7 +146,6 @@ class Client:
             returned = response.json()
             print(returned)
             converted = expected_type.from_json(returned)
-            print(converted)
         # return
         return converted
 
@@ -183,7 +182,7 @@ class Client:
         return await self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}/fronters",
-            Member,
+            Switch,
             200,
             {
                 404: SystemNotFound,
