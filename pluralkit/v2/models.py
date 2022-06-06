@@ -174,7 +174,7 @@ class Timestamp(Model):
                 else:
                     self.datetime = dt.replace(tzinfo=pytz.utc)
             elif isinstance(dt, str):
-                self.datetime = datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ")
+                self.datetime = datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%fZ")
             else:
                 msg = (
                     f"{self.__class__.__name__} takes either a datetime.datetime object or "
@@ -322,6 +322,63 @@ class Timestamp(Model):
             f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
             f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
         )
+    @staticmethod
+    def from_json(bd: str):
+        """Takes in a string (as returned by the API) and returns the corresponding `Timestamp`.
+
+        Args:
+            bd: The ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` formatted
+                string representing a PluralKit API timestamp.
+
+        Returns:
+            Timestamp: The corresponding `Timestamp` object.
+        """
+        return Timestamp(datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ"))
+
+    @staticmethod
+    def parse(ts):
+        """Takes in a `Timestamp`, `datetime`_, or `str`, converts to `Timestamp` as needed.
+
+        Args:
+            ts (Union[Timestamp,datetime,str]): The timestamp, represented as a `Timestamp`,
+                `datetime`_, or `str`.
+
+        Returns:
+            Timestamp: The `Timestamp` object.
+
+        Raises:
+            TypeError: If given argument is neither a `Timestamp`, `datetime`_, or `str`.
+
+        .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+        """
+        def __init__(self, dt: Optional[datetime]=None, *,
+            year: Optional[int]=None,
+            month: Optional[int]=None,
+            day: Optional[int]=None,
+            hour: int=0,
+            minute: int=0,
+            second: int=0,
+            microsecond: int=0
+        ):
+        
+        
+            if dt is None and any(arg is None for arg in (year, month, day)):
+                raise TypeError(
+                    f"{self.__class__.__name__} is missing required arguments. Either provide a " \
+                    f"datetime.datetime via the first positional argument, or provide the year, " \
+                    f"month, and day through the respective keyword arguments."
+                )
+
+            if dt is not None:
+                if dt.tzinfo is not None:
+                    self.datetime = dt.astimezone(pytz.utc)
+                else:
+                    self.datetime = dt.replace(tzinfo=pytz.utc)
+
+            else:
+                # mypy complains here
+                self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
+                self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
 class Birthday(Timestamp):
     """Represents a birthday.
@@ -401,6 +458,28 @@ class Timezone(Model):
         """Returns the string representation of this timezone as expected by the API.
         """
         return self.tz.zone
+    @staticmethod
+    def parse(tz):
+        """Takes in a `Timezone`, `tzinfo`, or `str` and converts to `Timezone` as needed.
+
+        Args:
+            tz (Union[Timezone,tzinfo,str]): The timezone, represented as a
+                `Timezone`, `tzinfo`, or `str`.
+
+        Raises:
+            TypeError: If given argument is neither a `Timezone`, `tzinfo`, nor `str`.
+        """
+        if isinstance(tz, Timezone):
+            return tz
+
+        if isinstance(tz, (tzinfo, str)):
+            return Timezone(tz)
+
+        raise TypeError(
+            f"Argument `tz` must be of type Timezone, tzinfo, or str; " \
+            f"received type(tz)={type(tz)}."
+        )
+
 
 # Settings
 
@@ -605,6 +684,7 @@ class Member(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
 class System(Model):
     """Represents a PluralKit system.
 
@@ -628,23 +708,40 @@ class System(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    id_: SystemId
-    created: Timestamp
-    name: Optional[str]
-    description: Optional[str]
-    tag: Optional[str]
-    avatar_url: Optional[str]
-    tz: Timezone
-    description_privacy: Privacy
-    pronoun_privacy: Privacy
-    member_list_privacy: Privacy
-    group_list_privacy: Privacy
-    front_privacy: Privacy
-    front_history_privacy: Privacy
-    pronouns: Optional[str]
-    banner: Optional[str]
-    color: Optional[Color]
+    def __init__(self, *,
+        id_: str,
+        created: Union[Timestamp,datetime,str],
+        name: Optional[str],
+        description: Optional[str],
+        tag: Optional[str],
+        avatar_url: Optional[str],
+        tz: Union[Timezone,tzinfo,str]="UTC",
+        description_privacy: Privacy,
+        #pronoun_privacy: Privacy,
+        member_list_privacy: Privacy,
+        #group_list_privacy: Privacy,
+        front_privacy: Privacy,
+        front_history_privacy: Privacy,
+        pronouns: Optional[str],
+        banner: Optional[str]
+        #color: Optional[Color]
+    ):
+        self.id = id
+        self.id_ = id_
+        self.name = name
 
+        self.description = description
+        self.tag = tag
+        self.avatar_url = avatar_url
+
+        self.created = Timestamp.parse(created)
+        self.tz = Timezone.parse(tz)
+
+        self.description_privacy = Privacy(description_privacy)
+        self.member_list_privacy = Privacy(member_list_privacy)
+        self.front_privacy = Privacy(front_privacy)
+        self.front_history_privacy = Privacy(front_history_privacy)
+    
     def __str__(self):
         return self.id_
     
@@ -654,6 +751,47 @@ class System(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+
+    
+    def from_json(json: Dict[str,Any] ) -> 'System':
+        """Create a `System` from a JSON object.
+
+        Args:
+            json: JSON object to parse.
+        """
+        return System(
+            id_ = json.get('id'),
+            name = json.get('name'),
+            description = json.get('description'),
+            tag = json.get('tag'),
+            avatar_url = json.get('avatar_url'),
+            tz=json.get("tz", "UTC"),
+            created=json.get("created"),
+            description_privacy=json.get("description_privacy", "public"),
+            member_list_privacy=json.get("member_list_privacy", "public"),
+            front_privacy=json.get("front_privacy", "public"),
+            front_history_privacy=json.get("front_history_privacy", "public"),
+           
+            pronouns = json.get('pronouns'),
+            banner = json.get('banner')
+        )
+
+    def json(self) -> Dict[str,Any]:
+        """Return Python `dict` representing this system.
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "tag": self.tag,
+            "avatar_url": self.avatar_url,
+            "tz": self.tz,
+            "created": self.created,
+            "description_privacy": self.description_privacy.value,
+            "member_list_privacy": self.member_list_privacy.value,
+            "front_privacy": self.front_privacy.value,
+            "front_history_privacy": self.front_history_privacy.value
+        }
 class Group(Model):
     """Represents a PluralKit system group
 

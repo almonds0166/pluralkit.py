@@ -1,4 +1,4 @@
-
+from .client import Client
 from .models import (
     Color, Timezone, Timestamp, Birthday,
     Privacy,

@@ -14,9 +14,10 @@ import httpx
 
 from .models import (
     Model,
-    MemberId, SystemId, GroupId,
+    MemberId, SystemId, GroupId,SwitchId,
     Member, System, Group, Switch, Message,
     MemberGuildSettings, SystemGuildSettings,
+    Timestamp
 )
 from .errors import *
 
@@ -61,12 +62,12 @@ class Client:
                 loop = asyncio.get_event_loop()
                 system = loop.run_until_complete(self._get_system())
             else:
-                system = self.get_system() # type: ignore
+                system = self._get_system() # type: ignore
             self.id = system.id
         self.content_headers = self.headers.copy()
         self.content_headers["Content-Type"] = "application/json"
 
-    async def _respect_rate_limit(self, self):
+    async def _respect_rate_limit(self):
         """Respects the rate limit by waiting if necessary."""
         if self._rate_limit_remaining == 0:
             now = datetime.datetime.now()
@@ -77,7 +78,7 @@ class Client:
                 await asyncio.sleep(self._rate_limit_reset_time - now)
                 self._rate_limit_remaining = 2
                 self._rate_limit_reset_time = now + datetime.timedelta(seconds=1)
- 
+
     def _update_rate_limits(self, headers):
         """Updates the rate limits based on the returned headers."""
         if "X-RateLimit-Remaining" in headers:
@@ -99,7 +100,7 @@ class Client:
         *,
         # reference IDs
         system: Union[SystemId,int,None]=None, # (int too, because it can be a Discord user ID)
-        member: Optinal[MemberId]=None,
+        member: Optional[MemberId]=None,
         group: Optional[GroupId]=None,
         switch: Optional[SwitchId]=None,
         message: Optional[int]=None,
@@ -140,31 +141,53 @@ class Client:
             if code != expected_code:
                 error = error_lookups.get(code, HTTPError)()
                 raise error
-
+    
             # convert received json to return type
             returned = response.json()
-            converted = expected_type(returned)
+            converted = expected_type.from_json(returned)
 
         # return
         return converted
 
-    SYSTEM_ERROR_CODE_LOOKUP = {
-        401: AuthorizationError,
-        403: AccessForbidden,
-        404: SystemNotFound,
-    }
-
-    async def _get_system(self, system: Union[SystemId,int,None]=None):
+    
+    
+    async def _get_system(self, system: Union[System,str,int,None]=None):
+        
         return await self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
             System,
             200,
-            SYSTEM_ERROR_CODE_LOOKUP,
+            {
+                404: SystemNotFound,
+            },
             system=system,
         )
 
-    async def _update_system(self, system: Union[SystemId])
+    async def _update_system(self, system: Union[SystemId,int,None]=None, **kwargs):
+        return await self._request_something(
+            "PATCH",
+            "{SERVER}/systems/{system_ref}",
+            System,
+            200,
+            {
+                401: Unauthorized,
+                403: NotOwnError,
+                404: SystemNotFound,
+            },
+            system=system,
+        )
 
-
+    async def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
+        return await self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/fronters",
+            System,
+            200,
+            {
+                404: SystemNotFound,
+            },
+            system=system,
+        )
+            
 
