@@ -196,12 +196,7 @@ class Timestamp(Model):
                 if dt.tzinfo is not None:
                     self.datetime = dt.astimezone(pytz.utc)
                 else:
-                    msg = (
-                    f"{self.__class__.__name__} takes either a datetime.datetime object or "
-                    f"ISO 8601 formatted string as the first positional argument. Given "
-                    f"type(dt)={type(dt)!r}"
-                )
-                raise TypeError(msg)
+                    self.datetime = dt.replace(tzinfo=pytz.utc)
             elif isinstance(dt, str):
                 try:
                     self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
@@ -210,7 +205,12 @@ class Timestamp(Model):
             elif isinstance(dt, Timestamp):
                 self.datetime = dt.datetime
             else:
-                self.datetime = dt.replace(tzinfo=pytz.utc)
+                msg = (
+                    f"{self.__class__.__name__} takes either a datetime.datetime object or "
+                    f"ISO 8601 formatted string as the first positional argument. Given "
+                    f"type(dt)={type(dt)!r}"
+                )
+                raise TypeError(msg)
 
         else:
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
