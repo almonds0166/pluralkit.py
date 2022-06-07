@@ -199,7 +199,10 @@ class Timestamp(Model):
                 else:
                     self.datetime = dt.replace(tzinfo=pytz.utc)
             elif isinstance(dt, str):
-                self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
+                try:
+                    self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
+                except ValueError:
+                    self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%SZ")
             elif isinstance(dt, Timestamp):
                 self.datetime = dt.datetime
             else:
@@ -787,28 +790,19 @@ class Message(Model):
             account.
         sender (int): The user ID of the account that sent the message.
         channel (int): The ID of the channel the message was sent to.
-        system (System): The system that proxied the message.
-        member (Member): The member that proxied the message.
+        system (Optional[System]): The system that proxied the message. None if system was deleted.
+        member (Optional[Member]): The member that proxied the message. None if member was deleted.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    def __init__(self, *,
-        timestamp: Timestamp,
-        id: int,
-        original: int,
-        sender: int,
-        channel: int,
-        system: System,
-        member: Member
-    ):
-        self.id = id
-        self.original = int(original)
-        self.sender = int(sender)
-        self.channel = int(channel)
-        self.system = system
-        self.member = member
-
-        self.timestamp = Timestamp.parse(timestamp)
+    timestamp: Timestamp
+    id: int
+    original: int
+    sender: int
+    channel: int
+    guild: int
+    system: Optional[System]
+    member: Optional[Member]
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
@@ -818,6 +812,14 @@ class Message(Model):
     
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __init__(self, json):
+        ignore_keys = ("id", "system", "member",)
+        Model.__init__(self, json, ignore_keys)
+        # fix the remaining keys
+        self.system = None if json["system"] is None else System(json["system"])
+        self.member = None if json["member"] is None else Member(json["member"])
+        self.id = int(json["id"])
 
 def _proxy_tags_processor(proxy_tags):
     if not proxy_tags: return proxy_tags
@@ -839,4 +841,9 @@ _VALUE_TRANSFORMATIONS = {
     "color": lambda c: None if c is None else Color(c),
     "proxy_tags": _proxy_tags_processor,
     "created": Timestamp,
+    "timestamp": Timestamp,
+    "channel": int,
+    "original": int,
+    "sender": int,
+    "guild": int,
 }

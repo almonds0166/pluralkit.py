@@ -167,6 +167,12 @@ class Client:
         404: GroupNotFound,
     }
 
+    MESSAGE_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: MessageNotFound,
+    }
+
     def get_system(self, system: Union[SystemId,int,None]=None):
         """
         """
@@ -230,6 +236,27 @@ class Client:
             200,
             self.GROUP_ERROR_CODE_LOOKUP,
             group=group,
+        )
+
+    def get_message(self, message: int):
+        """
+        """
+        awaitable = self._get_message(message)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_message(self, message: int):
+        return self._request_something(
+            "GET",
+            "{SERVER}/messages/{message_ref}",
+            Message,
+            200,
+            self.MESSAGE_ERROR_CODE_LOOKUP,
+            message=message,
         )
 
 
