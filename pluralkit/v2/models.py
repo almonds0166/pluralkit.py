@@ -10,9 +10,11 @@ from typing import (
     Tuple, List, Set, Sequence, Dict,
     Generator,
 )
+import warnings
 
 import pytz
 import colour
+
 from .errors import *
 
 # Enums
@@ -41,6 +43,27 @@ class Model:
                     model[k] = v.json()
 
         return model
+
+    def __init__(self, json, ignore_keys=None):
+        """Simple way to convert from API JSON object to the superclass
+        """
+        if ignore_keys is None: ignore_keys = set()
+        cls = self.__class__
+
+        for key, value in json.items():
+            if key in ignore_keys: continue
+            if key not in cls.__annotations__:
+                msg = f"unexpected key {key!r} in JSON object for {cls.__name__!r} construction"
+                warnings.warn(msg)
+
+            # convert PluralKit API key names to pluralkit.py attribute names
+            # and convert to proper Models if necessary
+            if key in _VALUE_TRANSFORMATIONS:
+                Constructor = _VALUE_TRANSFORMATIONS[key]
+                value = Constructor(value)
+            key = _KEY_TRANSFORMATIONS.get(key, key)
+
+            self.__dict__[key] = value
 
 # IDs
 
@@ -554,7 +577,7 @@ class Member(Model):
     """Represents a PluralKit system member.
 
     Attributes:
-        id_ (str): The member's five-letter lowercase ID.
+        id (str): The member's five-letter lowercase ID.
         name (str): The member's name.
         created (Timestamp): The member's creation date.
         name_privacy (Privacy): The member's name privacy.
@@ -577,7 +600,7 @@ class Member(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    id_: Optional[str]
+    id: Optional[str]
     name: str
     created: Timestamp
     name_privacy: Privacy
@@ -597,10 +620,10 @@ class Member(Model):
     visibility: Privacy
 
     def __str__(self):
-        return self.id_
+        return self.id
     
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
     
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -609,7 +632,7 @@ class System(Model):
     """Represents a PluralKit system.
 
     Attributes:
-        id_ (`SystemId`): The system's five-character lowercase ID.
+        id (`SystemId`): The system's five-character lowercase ID.
         name (Optional[str]): The name of the system.
         description (Optional[str]): The description of the system.
         tag (Optional[str]): The system's tag appended to display names.
@@ -628,7 +651,7 @@ class System(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    id_: SystemId
+    id: SystemId
     created: Timestamp
     name: Optional[str]
     description: Optional[str]
@@ -646,19 +669,27 @@ class System(Model):
     color: Optional[Color]
 
     def __str__(self):
-        return self.id_
+        return f"{self.id!s}"
     
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
     
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __init__(self, json):
+        ignore_keys = ("privacy", "webhook_url", "id", "uuid",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.__dict__["id"] = SystemId(id=json["id"], uuid=json["uuid"])
+        for key, value in json["privacy"].items():
+            self.__dict__[key] = Privacy(value)
 
 class Group(Model):
     """Represents a PluralKit system group
 
     Attributes:
-        id_ (`GroupId`): PluralKit group ID.
+        id (`GroupId`): PluralKit group ID.
         name (str): Name of the group.
         display_name (Optional[str]): Group display name.
         description (Optional[str]): Group description.
@@ -666,7 +697,7 @@ class Group(Model):
         banner (Optional[str]): (Publically accessible) URL of group banner.
         color (Optional[Color]): Group color.
     """
-    id_: Optional[GroupId]
+    id: Optional[GroupId]
     name: str
     display_name: Optional[str]
     description: Optional[str]
@@ -681,10 +712,10 @@ class Group(Model):
     visibility: Privacy
 
     def __str__(self):
-        return self.id_
+        return self.id
     
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
 
 class Switch(Model):
     """Represents a switch event.
@@ -723,7 +754,7 @@ class Message(Model):
 
     Attributes:
         timestamp (Timestamp): Timestamp of the message.
-        id_ (int): The ID of the Discord message sent by the webhook.
+        id (int): The ID of the Discord message sent by the webhook.
         original (int): The ID of the (presumably deleted) original Discord message sent by the
             account.
         sender (int): The user ID of the account that sent the message.
@@ -735,14 +766,14 @@ class Message(Model):
     """
     def __init__(self, *,
         timestamp: Timestamp,
-        id_: int,
+        id: int,
         original: int,
         sender: int,
         channel: int,
         system: System,
         member: Member
     ):
-        self.id_ = id_
+        self.id = id
         self.original = int(original)
         self.sender = int(sender)
         self.channel = int(channel)
@@ -760,4 +791,15 @@ class Message(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+# the following maps direct how to change the JSON objects as given by the API
+# to make them ready for use (e.g. Python-friendly)
+# see Model.__init__ for how this is used
 
+# [name given by API] -> [new Python-friendly name]
+
+_KEY_TRANSFORMATIONS = {
+}
+
+# [name given by API] -> [constructor to use on this object]
+_VALUE_TRANSFORMATIONS = {
+}

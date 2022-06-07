@@ -18,3 +18,6 @@ from .models import (
 
     Model, PluralKitId,
 )
+
+from .client import Client
+from .errors import *

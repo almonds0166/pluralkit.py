@@ -14,7 +14,7 @@ import httpx
 
 from .models import (
     Model,
-    MemberId, SystemId, GroupId,
+    MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
     MemberGuildSettings, SystemGuildSettings,
 )
@@ -66,7 +66,7 @@ class Client:
         self.content_headers = self.headers.copy()
         self.content_headers["Content-Type"] = "application/json"
 
-    async def _respect_rate_limit(self, self):
+    async def _respect_rate_limit(self):
         """Respects the rate limit by waiting if necessary."""
         if self._rate_limit_remaining == 0:
             now = datetime.datetime.now()
@@ -93,13 +93,13 @@ class Client:
         # required positional arguments
         kind: str,
         url_template: str,
-        expected_type: Model,
+        ModelConstructor,
         expected_code: int,
         error_lookups: dict,
         *,
         # reference IDs
         system: Union[SystemId,int,None]=None, # (int too, because it can be a Discord user ID)
-        member: Optinal[MemberId]=None,
+        member: Optional[MemberId]=None,
         group: Optional[GroupId]=None,
         switch: Optional[SwitchId]=None,
         message: Optional[int]=None,
@@ -143,16 +143,28 @@ class Client:
 
             # convert received json to return type
             returned = response.json()
-            converted = expected_type(returned)
+            #print(returned)
+            converted = ModelConstructor(returned)
 
         # return
         return converted
 
     SYSTEM_ERROR_CODE_LOOKUP = {
-        401: AuthorizationError,
-        403: AccessForbidden,
+        401: ValidationError,
+        403: ValidationError,
         404: SystemNotFound,
     }
+
+    def get_system(self, system: Union[SystemId,int,None]=None):
+        """
+        """
+        awaitable = self._get_system(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
 
     async def _get_system(self, system: Union[SystemId,int,None]=None):
         return await self._request_something(
@@ -160,11 +172,11 @@ class Client:
             "{SERVER}/systems/{system_ref}",
             System,
             200,
-            SYSTEM_ERROR_CODE_LOOKUP,
+            self.SYSTEM_ERROR_CODE_LOOKUP,
             system=system,
         )
 
-    async def _update_system(self, system: Union[SystemId])
+    #async def _update_system(self, system: Union[SystemId])
 
 
 
