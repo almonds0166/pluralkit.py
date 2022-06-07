@@ -26,28 +26,17 @@ class NotFound(PluralKitException):
     """Exception class for "not found"-related errors
     """
 
-class SystemGuildNotFound(NotFound):
-    """
-    """
-
-class MemberGuildNotFound(NotFound):
-    """
-    """
-
 class MemberNotFound(NotFound):
     """Thrown when the Member ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Member"
 
 class SystemNotFound(NotFound):
     """Thrown when the System ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "System"
 
 class SwitchNotFound(NotFound):
     """Thrown when the Switch ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Switch"
 
 class SwitchNotFoundPublic(NotFound):
     """
@@ -56,12 +45,14 @@ class SwitchNotFoundPublic(NotFound):
 class MessageNotFound(NotFound):
     """Thrown when the message ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Message"
 
 class GroupNotFound(NotFound):
     """Thrown when the Group ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Group"
+
+class GuildNotFound(NotFound):
+    """Thrown when the member or system has no guild settings for a given guild.
+    """
 
 # Exceptions related to lack of authorization
 
@@ -158,4 +149,9 @@ SWITCH_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
     401: Unauthorized,
     403: NotOwnSystem,
     404: SwitchNotFound,
+}
+
+GUILD_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    404: GuildNotFound,
 }

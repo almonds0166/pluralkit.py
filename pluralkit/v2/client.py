@@ -17,7 +17,7 @@ from .models import (
     Model,
     MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
-    MemberGuildSettings, SystemGuildSettings,
+    MemberGuildSettings, SystemGuildSettings, SystemSettings,
     Timestamp,
 )
 from .errors import *
@@ -106,6 +106,7 @@ class Client:
         group: Optional[GroupId]=None,
         switch: Optional[SwitchId]=None,
         message: Optional[int]=None,
+        guild_id: Optional[int]=None,
         # optional payload
         payload: Optional[dict]=None,
         params: Optional[dict]=None, # for query strings
@@ -124,7 +125,8 @@ class Client:
             "member_ref": member,
             "group_ref": group,
             "switch_ref": switch,
-            "message_ref": message
+            "message_ref": message,
+            "guild_id": guild_id,
         }
         for ref_name, arg in map_.items():
             if ref_name in url_template:
@@ -263,7 +265,7 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_switch(self, switch: SwitchId, system: Union[SystemId,int,None]=None):
+    def get_switch(self, switch: Union[SwitchId,str], system: Union[SystemId,int,None]=None):
         """
         """
         return self._request_something(
@@ -326,4 +328,48 @@ class Client:
             200,
             GROUP_ERROR_CODE_LOOKUP,
             group=group,
+        )
+
+    @_async_mode_handler
+    def get_system_settings(self, system: Union[SystemId,str,int,None]=None) -> SystemSettings:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/settings",
+            SystemSettings,
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_system_guild_settings(self, guild_id: int) -> SystemGuildSettings:
+        """Get the system guild settings of the client's system.
+
+        Note:
+            This requires your authorization token.
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/@me/guilds/{guild_id}",
+            SystemGuildSettings,
+            200,
+            GUILD_ERROR_CODE_LOOKUP,
+            guild_id=guild_id,
+        )
+
+    @_async_mode_handler
+    def get_member_guild_settings(self, member: Union[MemberId,str], guild_id: int) -> MemberGuildSettings:
+        """Get the member guild settings of a member.
+        """
+        error_lookups = GENERIC_ERROR_CODE_LOOKUP | {403: NotOwnMember}
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}/guilds/{guild_id}",
+            MemberGuildSettings,
+            200,
+            error_lookups,
+            member=member,
+            guild_id=guild_id,
         )
