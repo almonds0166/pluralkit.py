@@ -155,6 +155,12 @@ class Client:
         404: SystemNotFound,
     }
 
+    MEMBER_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: MemberNotFound,
+    }
+
     def get_system(self, system: Union[SystemId,int,None]=None):
         """
         """
@@ -166,8 +172,8 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _get_system(self, system: Union[SystemId,int,None]=None):
-        return await self._request_something(
+    def _get_system(self, system: Union[SystemId,int,None]=None):
+        return self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
             System,
@@ -177,6 +183,27 @@ class Client:
         )
 
     #async def _update_system(self, system: Union[SystemId])
+    
+    def get_member(self, member: Union[MemberId,str]):
+        """
+        """
+        awaitable = self._get_member(member)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_member(self, member: Union[MemberId,str]):
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}",
+            Member,
+            200,
+            self.MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+        )
 
 
 
