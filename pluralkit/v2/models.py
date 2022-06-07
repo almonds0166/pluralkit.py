@@ -196,7 +196,12 @@ class Timestamp(Model):
                 if dt.tzinfo is not None:
                     self.datetime = dt.astimezone(pytz.utc)
                 else:
-                    self.datetime = dt.replace(tzinfo=pytz.utc)
+                    msg = (
+                    f"{self.__class__.__name__} takes either a datetime.datetime object or "
+                    f"ISO 8601 formatted string as the first positional argument. Given "
+                    f"type(dt)={type(dt)!r}"
+                )
+                raise TypeError(msg)
             elif isinstance(dt, str):
                 try:
                     self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
@@ -208,7 +213,6 @@ class Timestamp(Model):
                 self.datetime = dt.replace(tzinfo=pytz.utc)
 
         else:
-            # mypy complains here
             self.datetime = datetime(year, month, day, hour, minute, second, microsecond)
             self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
@@ -340,7 +344,13 @@ class Timestamp(Model):
     def microsecond(self, value):
         self.datetime = self.datetime.replace(microsecond=value)
 
-
+    def json(self) -> str:
+        """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
+        """
+        return (
+            f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
+            f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
+        )
 class Birthday(Timestamp):
     """Represents a birthday.
     """
@@ -415,7 +425,10 @@ class Timezone(Model):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.tz.zone!r})"
 
-    
+    def json(self):
+        """Returns the string representation of this timezone as expected by the API.
+        """
+        return self.tz.zone
 
 
 # Settings
