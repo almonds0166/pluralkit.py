@@ -172,7 +172,7 @@ class Timestamp(Model):
     any `Timestamp` ``ts``.
 
     This class may be initialized in the same way that a `datetime` object is. It may also take a
-    `datetime` object directly.
+    `datetime` object, a `Timestamp` object, or an ISO 8601 formatted string directly.
     """
     def __init__(self, dt: Optional[datetime]=None, *,
         year: Optional[int]=None,
@@ -199,7 +199,9 @@ class Timestamp(Model):
                 else:
                     self.datetime = dt.replace(tzinfo=pytz.utc)
             elif isinstance(dt, str):
-                self.datetime = datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ")
+                self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
+            elif isinstance(dt, Timestamp):
+                self.datetime = dt.datetime
             else:
                 msg = (
                     f"{self.__class__.__name__} takes either a datetime.datetime object or "
@@ -710,6 +712,8 @@ class Group(Model):
         icon (Optional[str]): (Publically accessible) URL of group icon.
         banner (Optional[str]): (Publically accessible) URL of group banner.
         color (Optional[Color]): Group color.
+        created (Timestamp): The group's creation date.
+        system_id (SystemId): The ID of the group's system.
     """
     id: Optional[GroupId]
     name: str
@@ -724,12 +728,22 @@ class Group(Model):
     list_privacy: Privacy
     metadata_privacy: Privacy
     visibility: Privacy
+    created: Timestamp
+    system_id: SystemId
 
     def __str__(self):
-        return self.id
+        return f"{self.id!s}"
     
     def __eq__(self, other):
         return self.id == other.id
+
+    def __init__(self, json):
+        ignore_keys = ("uuid", "id", "privacy",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.id = GroupId(id=json["id"], uuid=json["uuid"])
+        for key, value in json["privacy"].items():
+            self.__dict__[key] = Privacy(value)
 
 class Switch(Model):
     """Represents a switch event.
@@ -824,4 +838,5 @@ _VALUE_TRANSFORMATIONS = {
     "system": SystemId,
     "color": lambda c: None if c is None else Color(c),
     "proxy_tags": _proxy_tags_processor,
+    "created": Timestamp,
 }
