@@ -148,10 +148,8 @@ class Client:
         # return
         return converted
 
-    
-    
     async def _get_system(self, system: Union[System,str,int,None]=None):
-        
+
         return await self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
@@ -188,5 +186,5 @@ class Client:
             },
             system=system,
         )
-            
+
 

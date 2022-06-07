@@ -165,7 +165,7 @@ class Color(colour.Color, Model):
             return c
 
         if isinstance(c, str):
-            if len(c) == 6 and set(c).issubset(set(string.hexdigits)):
+            if len(c) == 6 and set(c).issubset(set(str.hexdigits)):
                 return Color.from_json(c)
             else:
                 return Color(c)
