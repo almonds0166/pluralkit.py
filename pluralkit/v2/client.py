@@ -275,3 +275,55 @@ class Client:
             system=system,
             switch=switch,
         )
+
+    @_async_mode_handler
+    def get_members(self, system: Union[SystemId,int,None]=None) -> Sequence[Member]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/members",
+            lambda list_: [Member(m) for m in list_],
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_member_groups(self, member: Union[Member,str]) -> Sequence[Group]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}/groups",
+            lambda list_: [Group(g) for g in list_],
+            200,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+        )
+
+    @_async_mode_handler
+    def get_system_groups(self, system: Union[SystemId,int,None]=None) -> Sequence[Group]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/groups",
+            lambda list_: [Group(g) for g in list_],
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_group_members(self, group: Union[GroupId,str]) -> Sequence[Member]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/groups/{group_ref}/members",
+            lambda list_: [Member(m) for m in list_],
+            200,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+        )
