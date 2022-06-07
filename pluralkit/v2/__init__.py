@@ -8,7 +8,7 @@ from .models import (
     MemberGuildSettings,
     SystemGuildSettings,
 
-    MemberId, SystemId, GroupId,
+    MemberId, SystemId, GroupId, SwitchId,
 
     Member,
     System,

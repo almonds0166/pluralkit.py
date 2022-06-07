@@ -154,3 +154,8 @@ MESSAGE_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
     404: MessageNotFound,
 }
 
+SWITCH_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnSystem,
+    404: SwitchNotFound,
+}

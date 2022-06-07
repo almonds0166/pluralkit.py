@@ -751,22 +751,30 @@ class Group(Model):
 class Switch(Model):
     """Represents a switch event.
 
+    Note:
+        ``members`` can either be a list of `Member` models or a list of `MemberId`s, depending on
+        the client method used.
+
     Attributes:
         id (SwitchId): Switch's unique universal identifier (uuid).
         timestamp (Timestamp): Timestamp of the switch.
-        members (Sequence[MemberId]): IDs of members involved.
+        members (Union[Sequence[Member],Sequence[MemberId]]): Members involved.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
     id: SwitchId
     timestamp: Timestamp
-    members: Sequence[Member]
+    members: Union[Sequence[Member],Sequence[MemberId]]
 
     def __init__(self, json):
-        ignore_keys = ("id",)
+        ignore_keys = ("id", "members",) # "members" key is tricky
         Model.__init__(self, json, ignore_keys)
         # ...
         self.id = SwitchId(json["id"])
+        if all(isinstance(m, str) for m in json["members"]):
+            self.members = [MemberId(m) for m in json["members"]]
+        else:
+            self.members = [Member(m) for m in json["members"]]
     
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

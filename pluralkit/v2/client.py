@@ -245,8 +245,33 @@ class Client:
             200,
             GENERIC_ERROR_CODE_LOOKUP,
             system=system,
-            params = params,
+            params=params,
         )
 
+    @_async_mode_handler
+    def get_fronters(self, system: Union[SystemId,int,None]=None) \
+    -> Sequence[Member]:
+        """Get list of current fronters.
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/fronters",
+            lambda json: [Member(item) for item in json["members"]],
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            system=system,
+        )
 
-
+    @_async_mode_handler
+    def get_switch(self, switch: SwitchId, system: Union[SystemId,int,None]=None):
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/switches/{switch_ref}",
+            Switch,
+            200,
+            SWITCH_ERROR_CODE_LOOKUP,
+            system=system,
+            switch=switch,
+        )
