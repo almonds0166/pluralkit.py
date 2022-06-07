@@ -62,7 +62,7 @@ class Client:
                 loop = asyncio.get_event_loop()
                 system = loop.run_until_complete(self._get_system())
             else:
-                system = self._get_system() # type: ignore
+                system = self.get_system() # type: ignore
             self.id = system.id
         self.content_headers = self.headers.copy()
         self.content_headers["Content-Type"] = "application/json"

@@ -165,41 +165,8 @@ class Color(colour.Color, Model):
 
     json = __str__
 
-    @staticmethod
-    def parse(c):
-        """Takes in a `Color`, `colour.Color`_, or str and converts to `Color` as
-        needed.
 
-        Args:
-            color (Union[Color,colour.Color,str,None]): The color, represented as a `Color`,
-                `colour.Color`_ or `str`. If a string, may either be in the format as expected by
-                PluralKit's API internally (e.g. ``00ffff``) or a color string that can be taken by
-                a Color object (e.g. ``cyan``).
-
-        Returns:
-            Optional[Color]: The `Color` object, or ``None`` if input is None.
-
-        Raises:
-            TypeError: If the given argument is neither a `Color`, `colour.Color`_, or `str`.
-
-        .. _`colour.Color`: https://pypi.org/project/colour/#instantiation
-        """
-        if c is None: return None
-
-        if isinstance(c, colour.Color):
-            return c
-
-        if isinstance(c, str):
-            if len(c) == 6 and set(c).issubset(set(str.hexdigits)):
-                return Color.from_json(c)
-            else:
-                return Color(c)
-
-        raise TypeError(
-            f"Argument `c` must be of type colour.Color or str; received c={type(c)}."
-        )
-
-class Timestamp:
+class Timestamp(Model):
     """Represents a PluralKit UTC timestamp.
 
     This class works by wrapping around a `datetime` object. Use ``ts.datetime`` to access it, for
@@ -373,55 +340,6 @@ class Timestamp:
     def microsecond(self, value):
         self.datetime = self.datetime.replace(microsecond=value)
 
-    @staticmethod
-    def parse(ts):
-        """Takes in a `Timestamp`, `datetime`_, or `str`, converts to `Timestamp` as needed.
-
-        Args:
-            ts (Union[Timestamp,datetime,str]): The timestamp, represented as a `Timestamp`,
-                `datetime`_, or `str`.
-
-        Returns:
-            Timestamp: The `Timestamp` object.
-
-        Raises:
-            TypeError: If given argument is neither a `Timestamp`, `datetime`_, or `str`.
-
-        .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
-        """
-        if isinstance(ts, Timestamp):
-            return ts
-
-        if isinstance(ts, datetime):
-            return Timestamp(ts)
-
-        if isinstance(ts, str):
-            return Timestamp.from_json(ts)
-
-        raise TypeError(
-            f"Argument `ts` must be of type Timestamp, datetime.datetime, or str; " \
-            f"received type(ts)={type(ts)}."
-        )
-    @staticmethod
-    def from_json(bd: str):
-        """Takes in a string (as returned by the API) and returns the corresponding `Timestamp`.
-
-        Args:
-            bd: The ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` formatted
-                string representing a PluralKit API timestamp.
-
-        Returns:
-            Timestamp: The corresponding `Timestamp` object.
-        """
-        return Timestamp(datetime.strptime(bd, r"%Y-%m-%dT%H:%M:%S.%fZ"))
-
-    def json(self) -> str:
-        """Convert this timestamp to the ISO 8601 format that PluralKit uses internally.
-        """
-        return (
-            f"{self.year:04d}-{self.month:02d}-{self.day:02d}"
-            f"T{self.hour:02d}:{self.minute:02d}:{self.second:02d}.{self.microsecond:06d}Z"
-        )
 
 class Birthday(Timestamp):
     """Represents a birthday.
@@ -497,31 +415,7 @@ class Timezone(Model):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.tz.zone!r})"
 
-    def json(self):
-        """Returns the string representation of this timezone as expected by the API.
-        """
-        return self.tz.zone
-    @staticmethod
-    def parse(tz):
-        """Takes in a `Timezone`, `tzinfo`, or `str` and converts to `Timezone` as needed.
-
-        Args:
-            tz (Union[Timezone,tzinfo,str]): The timezone, represented as a
-                `Timezone`, `tzinfo`, or `str`.
-
-        Raises:
-            TypeError: If given argument is neither a `Timezone`, `tzinfo`, nor `str`.
-        """
-        if isinstance(tz, Timezone):
-            return tz
-
-        if isinstance(tz, (tzinfo, str)):
-            return Timezone(tz)
-
-        raise TypeError(
-            f"Argument `tz` must be of type Timezone, tzinfo, or str; " \
-            f"received type(tz)={type(tz)}."
-        )
+    
 
 
 # Settings
@@ -891,7 +785,7 @@ class Switch(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
 """
-
+    
     def __str__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
 
@@ -910,7 +804,7 @@ class Switch(Model):
         # fix up the remaining keys
         self.__dict__["id"] = SwitchId(uuid=json["id"])
 
-        self.timestamp = Timestamp.parse(json["timestamp"])
+        self.timestamp = Timestamp(json["timestamp"])
         if json["members"] is None or len(json["members"]) == 0:
             self.members = []
         else:
