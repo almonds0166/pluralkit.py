@@ -1,4 +1,6 @@
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from string import ascii_lowercase as ALPHABET
 from enum import Enum
@@ -47,12 +49,12 @@ class Model:
     def __init__(self, json, ignore_keys=None):
         """Simple way to convert from API JSON object to the superclass
         """
-        if ignore_keys is None: ignore_keys = set()
+        if ignore_keys is None: ignore_keys = ()
         cls = self.__class__
 
         for key, value in json.items():
             if key in ignore_keys: continue
-            if key not in cls.__annotations__:
+            if key not in cls.__annotations__ and key not in _KEY_TRANSFORMATIONS:
                 msg = f"unexpected key {key!r} in JSON object for {cls.__name__!r} construction"
                 warnings.warn(msg)
 
@@ -145,7 +147,7 @@ class Color(colour.Color, Model):
     """
     def __init__(self, *args, **kwargs):
         if len(args) == 1 and len(kwargs) == 0:
-            args = args[0]
+            arg = args[0]
             if isinstance(arg, colour.Color):
                 colour.Color.__init__(self, args[0].hex_l)
             elif isinstance(arg, str):
@@ -204,7 +206,7 @@ class Timestamp:
     any `Timestamp` ``ts``.
 
     This class may be initialized in the same way that a `datetime` object is. It may also take a
-    `datetime` object directly.
+    `datetime` object, a `Timestamp` object, or an ISO 8601 formatted string directly.
     """
     def __init__(self, dt: Optional[datetime]=None, *,
         year: Optional[int]=None,
@@ -223,8 +225,18 @@ class Timestamp:
             )
 
         if dt is not None:
-            if dt.tzinfo is not None:
-                self.datetime = dt.astimezone(pytz.utc)
+            if isinstance(dt, datetime):
+                if dt.tzinfo is not None:
+                    self.datetime = dt.astimezone(pytz.utc)
+                else:
+                    self.datetime = dt.replace(tzinfo=pytz.utc)
+            elif isinstance(dt, str):
+                try:
+                    self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%S.%fZ")
+                except ValueError:
+                    self.datetime = datetime.strptime(dt, r"%Y-%m-%dT%H:%M:%SZ")
+            elif isinstance(dt, Timestamp):
+                self.datetime = dt.datetime
             else:
                 self.datetime = dt.replace(tzinfo=pytz.utc)
 
@@ -573,7 +585,9 @@ class ProxyTag(Model):
         proxy_tag: Dict[str,str],
     ):
 
-        # FLAG: Add proxy_tag arg
+        if proxy_tag is not None:
+            prefix = prefix or proxy_tag["prefix"]
+            suffix = suffix or proxy_tag["suffix"]
 
         assert prefix or suffix, \
             "A valid proxy tag must have at least one of the prefix or suffix defined."
@@ -659,7 +673,6 @@ class ProxyTags(Model):
 
 # Member, System, Group, Switch, and Message
 
-@dataclass
 class Member(Model):
     """Represents a PluralKit system member.
 
@@ -684,6 +697,7 @@ class Member(Model):
             etc.) privacy.
         proxy_tags (ProxyTags): The member's proxy tags.
         visibility (Privacy): The visibility privacy setting of the member.
+        system_id (SystemId): The ID of the system this member belongs to.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
@@ -705,9 +719,11 @@ class Member(Model):
     metadata_privacy: Privacy
     proxy_tags: Optional[ProxyTags]
     visibility: Privacy
+    system_id: SystemId
+    banner: Optional[str]
 
     def __str__(self):
-        return self.id
+        return f"{self.id!s}"
     
     def __eq__(self, other):
         return self.id == other.id
@@ -749,6 +765,14 @@ class Member(Model):
             proxy_tags=proxy_tags,
             visibility=member.get("visibility", "public"),
         )
+
+    def __init__(self, json):
+        ignore_keys = ("uuid", "id", "privacy",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.id = MemberId(id=json["id"], uuid=json["uuid"])
+        for key, value in json["privacy"].items():
+            self.__dict__[key] = Privacy(value)
 
 class System(Model):
     """Represents a PluralKit system.
@@ -803,7 +827,7 @@ class System(Model):
         ignore_keys = ("privacy", "webhook_url", "id", "uuid",)
         Model.__init__(self, json, ignore_keys)
         # fix up the remaining keys
-        self.__dict__["id"] = SystemId(id=json["id"], uuid=json["uuid"])
+        self.id = SystemId(id=json["id"], uuid=json["uuid"])
         for key, value in json["privacy"].items():
             self.__dict__[key] = Privacy(value)
 
@@ -818,6 +842,8 @@ class Group(Model):
         icon (Optional[str]): (Publically accessible) URL of group icon.
         banner (Optional[str]): (Publically accessible) URL of group banner.
         color (Optional[Color]): Group color.
+        created (Timestamp): The group's creation date.
+        system_id (SystemId): The ID of the group's system.
     """
     id: Optional[GroupId]
     name: str
@@ -832,12 +858,22 @@ class Group(Model):
     list_privacy: Privacy
     metadata_privacy: Privacy
     visibility: Privacy
+    created: Timestamp
+    system_id: SystemId
 
     def __str__(self):
-        return self.id
+        return f"{self.id!s}"
+    
     def __eq__(self, other):
         return self.id == other.id
 
+    def __init__(self, json):
+        ignore_keys = ("uuid", "id", "privacy",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.id = GroupId(id=json["id"], uuid=json["uuid"])
+        for key, value in json["privacy"].items():
+            self.__dict__[key] = Privacy(value)
 
 class Switch(Model):
     """Represents a switch event.
@@ -915,28 +951,19 @@ class Message(Model):
             account.
         sender (int): The user ID of the account that sent the message.
         channel (int): The ID of the channel the message was sent to.
-        system (System): The system that proxied the message.
-        member (Member): The member that proxied the message.
+        system (Optional[System]): The system that proxied the message. None if system was deleted.
+        member (Optional[Member]): The member that proxied the message. None if member was deleted.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    def __init__(self, *,
-        timestamp: Timestamp,
-        id: int,
-        original: int,
-        sender: int,
-        channel: int,
-        system: System,
-        member: Member
-    ):
-        self.id = id
-        self.original = int(original)
-        self.sender = int(sender)
-        self.channel = int(channel)
-        self.system = system
-        self.member = member
-
-        self.timestamp = Timestamp.parse(timestamp)
+    timestamp: Timestamp
+    id: int
+    original: int
+    sender: int
+    channel: int
+    guild: int
+    system: Optional[System]
+    member: Optional[Member]
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id})"
@@ -947,6 +974,18 @@ class Message(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __init__(self, json):
+        ignore_keys = ("id", "system", "member",)
+        Model.__init__(self, json, ignore_keys)
+        # fix the remaining keys
+        self.system = None if json["system"] is None else System(json["system"])
+        self.member = None if json["member"] is None else Member(json["member"])
+        self.id = int(json["id"])
+
+def _proxy_tags_processor(proxy_tags):
+    if not proxy_tags: return proxy_tags
+    return ProxyTags([ProxyTag(proxy_tag=pt) for pt in proxy_tags])
+
 # the following maps direct how to change the JSON objects as given by the API
 # to make them ready for use (e.g. Python-friendly)
 # see Model.__init__ for how this is used
@@ -954,8 +993,18 @@ class Message(Model):
 # [name given by API] -> [new Python-friendly name]
 
 _KEY_TRANSFORMATIONS = {
+    "system": "system_id",
 }
 
 # [name given by API] -> [constructor to use on this object]
 _VALUE_TRANSFORMATIONS = {
+    "system": SystemId,
+    "color": lambda c: None if c is None else Color(c),
+    "proxy_tags": _proxy_tags_processor,
+    "created": Timestamp,
+    "timestamp": Timestamp,
+    "channel": int,
+    "original": int,
+    "sender": int,
+    "guild": int,
 }

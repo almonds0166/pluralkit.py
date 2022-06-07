@@ -156,6 +156,24 @@ class Client:
         404: SystemNotFound,
     }
 
+    MEMBER_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: MemberNotFound,
+    }
+
+    GROUP_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: GroupNotFound,
+    }
+
+    MESSAGE_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: MessageNotFound,
+    }
+
     def get_system(self, system: Union[SystemId,int,None]=None):
         """
         """
@@ -167,8 +185,8 @@ class Client:
             result = loop.run_until_complete(awaitable)
             return result
 
-    async def _get_system(self, system: Union[SystemId,int,None]=None):
-        return await self._request_something(
+    def _get_system(self, system: Union[SystemId,int,None]=None):
+        return self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
             System,
@@ -178,6 +196,69 @@ class Client:
         )
 
     #async def _update_system(self, system: Union[SystemId])
+    
+    def get_member(self, member: Union[MemberId,str]):
+        """
+        """
+        awaitable = self._get_member(member)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_member(self, member: Union[MemberId,str]):
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}",
+            Member,
+            200,
+            self.MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+        )
+
+    def get_group(self, group: Union[GroupId,str]):
+        """
+        """
+        awaitable = self._get_group(group)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_group(self, group: Union[GroupId,str]):
+        return self._request_something(
+            "GET",
+            "{SERVER}/groups/{group_ref}",
+            Group,
+            200,
+            self.GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+        )
+
+    def get_message(self, message: int):
+        """
+        """
+        awaitable = self._get_message(message)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_message(self, message: int):
+        return self._request_something(
+            "GET",
+            "{SERVER}/messages/{message_ref}",
+            Message,
+            200,
+            self.MESSAGE_ERROR_CODE_LOOKUP,
+            message=message,
+        )
 
     async def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
         return await self._request_something(
