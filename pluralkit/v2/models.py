@@ -10,9 +10,11 @@ from typing import (
     Tuple, List, Set, Sequence, Dict,
     Generator,
 )
+import warnings
 
 import pytz
 import colour
+
 from .errors import *
 
 # Enums
@@ -41,6 +43,27 @@ class Model:
                     model[k] = v.json()
 
         return model
+
+    def __init__(self, json, ignore_keys=None):
+        """Simple way to convert from API JSON object to the superclass
+        """
+        if ignore_keys is None: ignore_keys = set()
+        cls = self.__class__
+
+        for key, value in json.items():
+            if key in ignore_keys: continue
+            if key not in cls.__annotations__:
+                msg = f"unexpected key {key!r} in JSON object for {cls.__name__!r} construction"
+                warnings.warn(msg)
+
+            # convert PluralKit API key names to pluralkit.py attribute names
+            # and convert to proper Models if necessary
+            if key in _VALUE_TRANSFORMATIONS:
+                Constructor = _VALUE_TRANSFORMATIONS[key]
+                value = Constructor(value)
+            key = _KEY_TRANSFORMATIONS.get(key, key)
+
+            self.__dict__[key] = value
 
 # IDs
 
@@ -641,7 +664,7 @@ class Member(Model):
     """Represents a PluralKit system member.
 
     Attributes:
-        id_ (str): The member's five-letter lowercase ID.
+        id (str): The member's five-letter lowercase ID.
         name (str): The member's name.
         created (Timestamp): The member's creation date.
         name_privacy (Privacy): The member's name privacy.
@@ -664,54 +687,24 @@ class Member(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    def __init__(self, *,
-        id: str,
-        name: str,
-        created: Union[None, Timestamp,datetime,str],
-        name_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        display_name: Optional[str]=None,
-        description: Optional[str]=None,
-        description_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        color: Union[Color,str,None]=None,
-        birthday: Union[Birthday,datetime,str,None]=None,
-        birthday_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        pronouns: Optional[str]=None,
-        pronoun_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        avatar_url: Optional[str]=None,
-        avatar_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        keep_proxy: bool=False,
-        metadata_privacy: Union[Privacy,str]=Privacy.PUBLIC,
-        proxy_tags: Optional[ProxyTags]=None,
-        visibility: Union[Privacy,str]=Privacy.PUBLIC
-    ):
-        self.id = id
-        self.name = name
-
-        if created is not None:
-            self.created = Timestamp.parse(created)
-        else:
-            self.created = None
-        self.birthday = Birthday.parse(birthday)
-        self.color = Color.parse(color)
-
-        self.display_name = display_name
-        self.description = description
-        self.pronouns = pronouns
-        self.avatar_url = avatar_url
-        self.keep_proxy = keep_proxy
-
-        if proxy_tags is None:
-            self.proxy_tags = ProxyTags()
-        else:
-            self.proxy_tags = proxy_tags
-
-        self.name_privacy = Privacy(name_privacy)
-        self.description_privacy = Privacy(description_privacy)
-        self.birthday_privacy = Privacy(birthday_privacy)
-        self.pronoun_privacy = Privacy(pronoun_privacy)
-        self.avatar_privacy = Privacy(avatar_privacy)
-        self.metadata_privacy = Privacy(metadata_privacy)
-        self.visibility = Privacy(visibility)
+    id: Optional[str]
+    name: str
+    created: Timestamp
+    name_privacy: Privacy
+    display_name: Optional[str]
+    description: Optional[str]
+    description_privacy: Privacy
+    color: Optional[Color]
+    birthday: Optional[Birthday]
+    birthday_privacy: Privacy
+    pronouns: Optional[str]
+    pronoun_privacy: Privacy
+    avatar_url: Optional[str]
+    avatar_privacy: Privacy
+    keep_proxy: bool
+    metadata_privacy: Privacy
+    proxy_tags: Optional[ProxyTags]
+    visibility: Privacy
 
     def __str__(self):
         return self.id
@@ -761,7 +754,7 @@ class System(Model):
     """Represents a PluralKit system.
 
     Attributes:
-        id_ (`SystemId`): The system's five-character lowercase ID.
+        id (`SystemId`): The system's five-character lowercase ID.
         name (Optional[str]): The name of the system.
         description (Optional[str]): The description of the system.
         tag (Optional[str]): The system's tag appended to display names.
@@ -780,97 +773,45 @@ class System(Model):
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    def __init__(self, *,
-        id_: str,
-        created: Union[Timestamp,datetime,str],
-        name: Optional[str],
-        description: Optional[str],
-        tag: Optional[str],
-        avatar_url: Optional[str],
-        tz: Union[Timezone,tzinfo,str]="UTC",
-        description_privacy: Privacy,
-        #pronoun_privacy: Privacy,
-        member_list_privacy: Privacy,
-        #group_list_privacy: Privacy,
-        front_privacy: Privacy,
-        front_history_privacy: Privacy,
-        pronouns: Optional[str],
-        banner: Optional[str]
-        #color: Optional[Color]
-    ):
-        self.id = id
-        self.id_ = id_
-        self.name = name
-
-        self.description = description
-        self.tag = tag
-        self.avatar_url = avatar_url
-
-        self.created = Timestamp.parse(created)
-        self.tz = Timezone.parse(tz)
-
-        self.description_privacy = Privacy(description_privacy)
-        self.member_list_privacy = Privacy(member_list_privacy)
-        self.front_privacy = Privacy(front_privacy)
-        self.front_history_privacy = Privacy(front_history_privacy)
+    id: SystemId
+    created: Timestamp
+    name: Optional[str]
+    description: Optional[str]
+    tag: Optional[str]
+    avatar_url: Optional[str]
+    tz: Timezone
+    description_privacy: Privacy
+    pronoun_privacy: Privacy
+    member_list_privacy: Privacy
+    group_list_privacy: Privacy
+    front_privacy: Privacy
+    front_history_privacy: Privacy
+    pronouns: Optional[str]
+    banner: Optional[str]
+    color: Optional[Color]
     
     def __str__(self):
-        return self.id_
+        return f"{self.id!s}"
     
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
     
     def __ne__(self, other):
         return not self.__eq__(other)
 
-
-    
-    def from_json(json: Dict[str,Any] ) -> 'System':
-        """Create a `System` from a JSON object.
-
-        Args:
-            json: JSON object to parse.
-        """
-        return System(
-            id_ = json.get('id'),
-            name = json.get('name'),
-            description = json.get('description'),
-            tag = json.get('tag'),
-            avatar_url = json.get('avatar_url'),
-            tz=json.get("tz", "UTC"),
-            created=json.get("created"),
-            description_privacy=json.get("description_privacy", "public"),
-            member_list_privacy=json.get("member_list_privacy", "public"),
-            front_privacy=json.get("front_privacy", "public"),
-            front_history_privacy=json.get("front_history_privacy", "public"),
-           
-            pronouns = json.get('pronouns'),
-            banner = json.get('banner')
-        )
-
-    def json(self) -> Dict[str,Any]:
-        """Return Python `dict` representing this system.
-        """
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "tag": self.tag,
-            "avatar_url": self.avatar_url,
-            "tz": self.tz,
-            "created": self.created,
-            "description_privacy": self.description_privacy.value,
-            "member_list_privacy": self.member_list_privacy.value,
-            "front_privacy": self.front_privacy.value,
-            "front_history_privacy": self.front_history_privacy.value
-        }
-
+    def __init__(self, json):
+        ignore_keys = ("privacy", "webhook_url", "id", "uuid",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.__dict__["id"] = SystemId(id=json["id"], uuid=json["uuid"])
+        for key, value in json["privacy"].items():
+            self.__dict__[key] = Privacy(value)
 
 class Group(Model):
     """Represents a PluralKit system group
 
     Attributes:
-        id_ (`GroupId`): PluralKit group ID.
+        id (`GroupId`): PluralKit group ID.
         name (str): Name of the group.
         display_name (Optional[str]): Group display name.
         description (Optional[str]): Group description.
@@ -878,7 +819,7 @@ class Group(Model):
         banner (Optional[str]): (Publically accessible) URL of group banner.
         color (Optional[Color]): Group color.
     """
-    id_: Optional[GroupId]
+    id: Optional[GroupId]
     name: str
     display_name: Optional[str]
     description: Optional[str]
@@ -893,10 +834,9 @@ class Group(Model):
     visibility: Privacy
 
     def __str__(self):
-        return self.id_
-    
+        return self.id
     def __eq__(self, other):
-        return self.id_ == other.id_
+        return self.id == other.id
 
 
 class Switch(Model):
@@ -914,18 +854,7 @@ class Switch(Model):
         members (Union[Sequence[str],Sequence[Member]]): Members involved.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
-    """
-    def __init__(self, *,
-        timestamp: Timestamp,
-        members: Union[Sequence[str],Sequence[Member]]
-    ):  
-        print(timestamp)
-        self.timestamp = Timestamp.parse(timestamp)
-        print(self.timestamp)
-        if members is None or len(members) == 0:
-            self.members = []
-        else:
-            self.members = [member for member in members]
+"""
 
     def __str__(self):
         return f"{self.__class__.__name__}<{self.timestamp}>"
@@ -938,6 +867,18 @@ class Switch(Model):
     
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __init__(self, json):
+        ignore_keys = ("privacy", "webhook_url", "id", "uuid", "timestamp", "members",)
+        Model.__init__(self, json, ignore_keys)
+        # fix up the remaining keys
+        self.__dict__["id"] = SwitchId(uuid=json["id"])
+
+        self.timestamp = Timestamp.parse(json["timestamp"])
+        if json["members"] is None or len(json["members"]) == 0:
+            self.members = []
+        else:
+            self.members = [member for member in json["members"]]
 
     @staticmethod
     def from_json(switch: Dict[str,str]):
@@ -969,7 +910,7 @@ class Message(Model):
 
     Attributes:
         timestamp (Timestamp): Timestamp of the message.
-        id_ (int): The ID of the Discord message sent by the webhook.
+        id (int): The ID of the Discord message sent by the webhook.
         original (int): The ID of the (presumably deleted) original Discord message sent by the
             account.
         sender (int): The user ID of the account that sent the message.
@@ -981,14 +922,14 @@ class Message(Model):
     """
     def __init__(self, *,
         timestamp: Timestamp,
-        id_: int,
+        id: int,
         original: int,
         sender: int,
         channel: int,
         system: System,
         member: Member
     ):
-        self.id_ = id_
+        self.id = id
         self.original = int(original)
         self.sender = int(sender)
         self.channel = int(channel)
@@ -1006,4 +947,15 @@ class Message(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+# the following maps direct how to change the JSON objects as given by the API
+# to make them ready for use (e.g. Python-friendly)
+# see Model.__init__ for how this is used
 
+# [name given by API] -> [new Python-friendly name]
+
+_KEY_TRANSFORMATIONS = {
+}
+
+# [name given by API] -> [constructor to use on this object]
+_VALUE_TRANSFORMATIONS = {
+}

@@ -14,7 +14,7 @@ import httpx
 
 from .models import (
     Model,
-    MemberId, SystemId, GroupId,SwitchId,
+    MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
     MemberGuildSettings, SystemGuildSettings,
     Timestamp
@@ -94,7 +94,7 @@ class Client:
         # required positional arguments
         kind: str,
         url_template: str,
-        expected_type: Model,
+        ModelConstructor,
         expected_code: int,
         error_lookups: dict,
         *,
@@ -144,36 +144,40 @@ class Client:
 
             # convert received json to return type
             returned = response.json()
-            converted = expected_type.from_json(returned)
+            #print(returned)
+            converted = ModelConstructor(returned)
+
         # return
         return converted
 
-    async def _get_system(self, system: Union[System,str,int,None]=None):
+    SYSTEM_ERROR_CODE_LOOKUP = {
+        401: ValidationError,
+        403: ValidationError,
+        404: SystemNotFound,
+    }
 
+    def get_system(self, system: Union[SystemId,int,None]=None):
+        """
+        """
+        awaitable = self._get_system(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    async def _get_system(self, system: Union[SystemId,int,None]=None):
         return await self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
             System,
             200,
-            {
-                404: SystemNotFound,
-            },
+            self.SYSTEM_ERROR_CODE_LOOKUP,
             system=system,
         )
 
-    async def _update_system(self, system: Union[SystemId,int,None]=None, **kwargs):
-        return await self._request_something(
-            "PATCH",
-            "{SERVER}/systems/{system_ref}",
-            System,
-            200,
-            {
-                401: Unauthorized,
-                403: NotOwnError,
-                404: SystemNotFound,
-            },
-            system=system,
-        )
+    #async def _update_system(self, system: Union[SystemId])
 
     async def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
         return await self._request_something(
