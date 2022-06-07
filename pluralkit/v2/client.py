@@ -260,8 +260,20 @@ class Client:
             message=message,
         )
 
-    async def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
-        return await self._request_something(
+
+    def get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
+        """
+        """
+        awaitable = self._get_fronters(system)
+        if self.async_mode:
+            return awaitable
+        else:
+            loop = asyncio.get_event_loop()
+            result = loop.run_until_complete(awaitable)
+            return result
+
+    def _get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
+        return self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}/fronters",
             Switch,
