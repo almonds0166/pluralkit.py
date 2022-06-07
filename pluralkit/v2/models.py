@@ -218,7 +218,7 @@ class Timestamp(Model):
             self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{self.json()}>"
+        return f"{self.__class__.__name__}({self.json()!r})"
 
     def __str__(self):
         return (
@@ -752,27 +752,21 @@ class Switch(Model):
     """Represents a switch event.
 
     Attributes:
-        uuid (Optional[str]): Switch's unique universal identifier (uuid).
+        id (SwitchId): Switch's unique universal identifier (uuid).
         timestamp (Timestamp): Timestamp of the switch.
-        members (Union[Sequence[str],Sequence[Member]]): Members involved.
+        members (Sequence[MemberId]): IDs of members involved.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
     """
-    def __init__(self, *,
-        uuid: str,
-        timestamp: Timestamp,
-        members: Union[Sequence[str],Sequence[Member]]
-    ):
-        self.uuid = uuid
-        self.timestamp = Timestamp.parse(timestamp)
+    id: SwitchId
+    timestamp: Timestamp
+    members: Sequence[Member]
 
-        if members is None or len(members) == 0:
-            self.members = []
-        else:
-            self.members = [member for member in members]
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}<{self.timestamp}>"
+    def __init__(self, json):
+        ignore_keys = ("id",)
+        Model.__init__(self, json, ignore_keys)
+        # ...
+        self.id = SwitchId(json["id"])
     
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

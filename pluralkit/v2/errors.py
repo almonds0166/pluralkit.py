@@ -25,10 +25,6 @@ class ValidationError(PluralKitException):
 class NotFound(PluralKitException):
     """Exception class for "not found"-related errors
     """
-    def __init__(self, id_=None):
-        Exception.__init__(self, (
-            f"The given {self.CONTEXT} ID ({id_}) was not found in PluralKit's database."
-        ))
 
 class SystemGuildNotFound(NotFound):
     """
@@ -67,35 +63,25 @@ class GroupNotFound(NotFound):
     """
     CONTEXT = "Group"
 
-class NotOwnError(PluralKitException):
-    """Thrown when attempting to access private info.
-    """
-    def __init__(self, id_=None):
-        Exception.__init__(self, (
-            f"You do not seem to own the {self.CONTEXT} associated with the ID {id_}. Please make "
-            f"sure you have your correct authorization token loaded!"
-        ))
-
-class NotOwnMemberError(NotOwnError):
-    """
-    """
-    CONTEXT = "Member"
-
-class NotOwnGroupError(NotOwnError):
-    """
-    """
-    CONTEXT = "Group"
-
 # Exceptions related to lack of authorization
 
 class Unauthorized(PluralKitException):
     """Thrown when the authorization token passed to PluralKit's API is invalid or missing.
     """
-    def __init__(self):
-        Exception.__init__(self, (
-            f"System token seems to be missing or invalid. Can you check that you entered it in "
-            f"correctly?"
-        ))
+
+class NotOwnSystem(Unauthorized):
+    """
+    """
+
+class NotOwnMember(Unauthorized):
+    """
+    """
+    CONTEXT = "Member"
+
+class NotOwnGroup(Unauthorized):
+    """
+    """
+    CONTEXT = "Group"
 
 class UnauthorizedGroupList(Unauthorized):
     """
@@ -138,3 +124,33 @@ class SameSwitchMembersError(SwitchError):
 class InvalidSwitchId(SwitchError):
     """
     """
+
+GENERIC_ERROR_CODE_LOOKUP = {
+    400: GenericBadRequest,
+    403: Unauthorized,
+    404: NotFound,
+}
+
+SYSTEM_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnSystem,
+    404: SystemNotFound,
+}
+
+MEMBER_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnMember,
+    404: MemberNotFound,
+}
+
+GROUP_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnGroup,
+    404: GroupNotFound,
+}
+
+MESSAGE_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    404: MessageNotFound,
+}
+
