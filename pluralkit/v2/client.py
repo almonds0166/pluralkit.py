@@ -139,14 +139,17 @@ class Client:
             request_func = getattr(session, kind.lower()) # nice
             kwargs = {}
             if params is not None: kwargs["params"] = params
-            if payload is not None: kwargs["payload"] = payload
+            if payload is not None: kwargs["json"] = payload
             response = await request_func(url, **kwargs)
 
             code = response.status_code
-            returned = response.json()
+            returned = response.json() if response.text else ""
             if code != expected_code:
                 if code in error_lookups:
-                    msg = "{code}: {messsage}".format(**returned)
+                    if isinstance(returned, dict) and "message" in returned:
+                        msg = "{code}: {message}".format(**returned)
+                    else:
+                        msg = f"{code}: {response.text!r}" if response.text else f"{code}"
                     error = error_lookups[code](msg)
                 else:
                     error = HTTPError(code)
@@ -175,6 +178,10 @@ class Client:
     # ==============
     #  Main methods
     # ==============
+
+    # 
+    #  get
+    # 
 
     @_async_mode_handler
     def get_system(self, system: Union[SystemId,int,None]=None):
@@ -373,3 +380,224 @@ class Client:
             member=member,
             guild_id=guild_id,
         )
+
+    # 
+    #  delete
+    # 
+
+    @_async_mode_handler
+    def delete_member(self, member: Union[MemberId,str]) -> None:
+        """
+        """
+        return self._request_something(
+            "DELETE",
+            "{SERVER}/members/{member_ref}",
+            lambda x: None,
+            204,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+        )
+
+    @_async_mode_handler
+    def delete_group(self, group: Union[GroupId,Group]) -> None:
+        """
+        """
+        if isinstance(group, Group): group = group.id
+        return self._request_something(
+            "DELETE",
+            "{SERVER}/groups/{group_ref}",
+            lambda x: None,
+            204,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+        )
+
+    @_async_mode_handler
+    def delete_switch(self, switch: Union[SwitchId,Switch]) -> None:
+        """
+        """
+        if isinstance(switch, Switch): switch = switch.id
+        return self._request_something(
+            "DELETE",
+            "{SERVER}/systems/@me/switches/{switch_ref}",
+            lambda x: None,
+            204,
+            SWITCH_ERROR_CODE_LOOKUP,
+            switch=switch,
+        )
+
+    # 
+    #  add, remove, set
+    # 
+
+    def _gather_args(self, args, context) -> Sequence[str]:
+        ALLOWED = {
+            "groups": {
+                Group: lambda g: g.id.uuid,
+                GroupId: lambda gid: gid.uuid,
+            },
+            "members": {
+                Member: lambda m: m.id.uuid,
+                MemberId: lambda mid: mid.uuid,
+            }
+        }
+        arg_list = []
+        for arg in args:
+            for allowed_type in ALLOWED[context]:
+                if isinstance(arg, allowed_type):
+                    func = ALLOWED[context][allowed_type]
+                    arg_list.append(func(arg))
+                    break
+            else:
+                allowed_types = ", ".join([c.__name__ for c in ALLOWED[context].keys()])
+                msg = (
+                    f"{context} must be of any of these types: {allowed_types}. "
+                    f"Encountered type {type(group)!r} ({group!r})."
+                )
+                raise ValueError(msg)
+        return arg_list
+
+    @_async_mode_handler
+    def add_member_to_groups(self, member: Union[MemberId,str], groups) -> None:
+        """Add a member to each group in a given list of groups.
+
+        Not to be confused with `Client.add_members_to_group`.
+
+        Arguments:
+            member: The member to add to the groups.
+            groups (Sequence[Union[GroupId,Group]]): The groups to add the member to, passed in
+                as positional arguments.
+        """
+        group_list = self._gather_args(groups, "groups")
+        return self._request_something(
+            "POST",
+            "{SERVER}/members/{member_ref}/groups/add",
+            lambda x: None,
+            204,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+            payload=group_list,
+        )
+
+    @_async_mode_handler
+    def remove_member_from_groups(self, member: Union[MemberId,str], groups) -> None:
+        """Remove a member from each group in a given list of groups.
+
+        Not to be confused with `Client.remove_members_from_group`.
+
+        Tip:
+            If you want to remove *all* groups from a member, consider using
+            `Client.set_member_groups` with no groups.
+
+        Arguments:
+            member: The member to remove from the groups.
+            groups (Sequence[Union[GroupId,Group]]): The groups to remove the member from, passed
+                in as positional arguments.
+        """
+        group_list = self._gather_args(groups, "groups")
+        return self._request_something(
+            "POST",
+            "{SERVER}/members/{member_ref}/groups/remove",
+            lambda x: None,
+            204,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+            payload=group_list,
+        )
+
+    @_async_mode_handler
+    def set_member_groups(self, member: Union[MemberId,str], groups) -> None:
+        """Explicitly set which groups a member belongs to.
+
+        Not to be confused with `Client.set_group_members`.
+
+        An empty list is accepted, effectively removing the member from any & all groups.
+
+        Arguments:
+            member: The member for which to set the groups.
+            groups (Sequence[Union[GroupId,Group]]): The groups to assign to the member, passed in
+                as positional arguments.
+        """
+        group_list = self._gather_args(groups, "groups")
+        return self._request_something(
+            "POST",
+            "{SERVER}/members/{member_ref}/groups/overwrite",
+            lambda x: None,
+            204,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+            payload=group_list,
+        )
+
+    @_async_mode_handler
+    def add_members_to_group(self, group: Union[GroupId,Group], members) -> None:
+        """Add members to a group.
+
+        Not to be confused with `Client.add_member_to_groups`.
+
+        Arguments:
+            group: The group to add the members to.
+            members (Union[Member]): The members to add to the group, passed in as positional
+                arguments.
+        """
+        member_list = self._gather_args(members, "members")
+        return self._request_something(
+            "POST",
+            "{SERVER}/groups/{group_ref}/members/add",
+            lambda x: None,
+            204,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+            payload=member_list,
+        )
+
+    @_async_mode_handler
+    def remove_members_from_group(self, group: Union[GroupId,Group], members) -> None:
+        """Remove members from a group.
+
+        Not to be confused with `Client.remove_member_from_groups`.
+
+        Tip:
+            If you want to remove *all* members from a group, consider using
+            `Client.set_group_members` with no members.
+
+        Arguments:
+            group: The group to remove the members from.
+            members (Union[Member]): The members to remove from the group, passed in as positional
+                arguments.
+        """
+        member_list = self._gather_args(members, "members")
+        return self._request_something(
+            "POST",
+            "{SERVER}/groups/{group_ref}/members/remove",
+            lambda x: None,
+            204,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+            payload=member_list,
+        )
+
+    @_async_mode_handler
+    def set_group_members(self, group: Union[GroupId,Group], members) -> None:
+        """Remove members from a group.
+
+        Not to be confused with `Client.set_member_groups`.
+
+        An empty list is accepted, effectively removing all members from a group.
+
+        Arguments:
+            group: The group to remove the members from.
+            members (Union[Member]): The members to assign to the group, passed in as positional
+                arguments.
+        """
+        member_list = self._gather_args(members, "members")
+        return self._request_something(
+            "POST",
+            "{SERVER}/groups/{group_ref}/members/overwrite",
+            lambda x: None,
+            204,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+            payload=member_list,
+        )
+

@@ -35,7 +35,7 @@ setup(
    long_description=long_description,
    long_description_content_type="text/markdown",
    install_requires=[
-      "httpx==0.18.2", # https://www.python-httpx.org/
+      "httpx>=0.23.0", # https://www.python-httpx.org/
       "colour>=0.1",
       "pytz>=2021",
    ],
