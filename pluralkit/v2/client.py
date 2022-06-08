@@ -9,6 +9,7 @@ from typing import (
 import datetime
 import asyncio
 from http.client import responses as RESPONSE_CODES
+from functools import wraps
 
 import httpx
 
@@ -16,8 +17,8 @@ from .models import (
     Model,
     MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
-    MemberGuildSettings, SystemGuildSettings,
-    Timestamp
+    MemberGuildSettings, SystemGuildSettings, SystemSettings,
+    Timestamp,
 )
 from .errors import *
 
@@ -58,14 +59,18 @@ class Client:
         if user_agent: self.headers["User-Agent"] = user_agent
         if token:
             self.headers["Authorization"] = token
-            if async_mode:
-                loop = asyncio.get_event_loop()
-                system = loop.run_until_complete(self._get_system())
-            else:
-                system = self.get_system() # type: ignore
-            self.id = system.id
+            #if async_mode:
+            #    loop = asyncio.get_event_loop()
+            #    system = loop.run_until_complete(self._get_system())
+            #else:
+            #    system = self.get_system() # type: ignore
+            #self.id = system.id
         self.content_headers = self.headers.copy()
         self.content_headers["Content-Type"] = "application/json"
+
+    # ========================
+    #  Private helper methods
+    # ========================
 
     async def _respect_rate_limit(self):
         """Respects the rate limit by waiting if necessary."""
@@ -86,10 +91,7 @@ class Client:
         if "X-RateLimit-Reset" in headers:
             self._rate_limit_reset_time = datetime.datetime.fromtimestamp(int(headers["X-RateLimit-Reset"]))
 
-    # ==============
-    #  Main methods
-    # ==============
-
+    # abstract API http requester
     async def _request_something(self,
         # required positional arguments
         kind: str,
@@ -104,8 +106,10 @@ class Client:
         group: Optional[GroupId]=None,
         switch: Optional[SwitchId]=None,
         message: Optional[int]=None,
+        guild_id: Optional[int]=None,
         # optional payload
         payload: Optional[dict]=None,
+        params: Optional[dict]=None, # for query strings
     ):
         # put together url from given arguments
         pieces = {"SERVER": SERVER}
@@ -121,7 +125,8 @@ class Client:
             "member_ref": member,
             "group_ref": group,
             "switch_ref": switch,
-            "message_ref": message
+            "message_ref": message,
+            "guild_id": guild_id,
         }
         for ref_name, arg in map_.items():
             if ref_name in url_template:
@@ -132,134 +137,198 @@ class Client:
         # make the request
         async with httpx.AsyncClient(headers=self.headers) as session:
             request_func = getattr(session, kind.lower()) # nice
-            if payload is None:
-                response = await request_func(url)
-            else:
-                response = await request_func(url, data=payload)
+            kwargs = {}
+            if params is not None: kwargs["params"] = params
+            if payload is not None: kwargs["payload"] = payload
+            response = await request_func(url, **kwargs)
 
             code = response.status_code
+            returned = response.json()
             if code != expected_code:
-                error = error_lookups.get(code, HTTPError)()
+                if code in error_lookups:
+                    msg = "{code}: {messsage}".format(**returned)
+                    error = error_lookups[code](msg)
+                else:
+                    error = HTTPError(code)
                 raise error
 
             # convert received json to return type
-            returned = response.json()
             #print(returned)
             converted = ModelConstructor(returned)
 
         # return
         return converted
 
-    SYSTEM_ERROR_CODE_LOOKUP = {
-        401: ValidationError,
-        403: ValidationError,
-        404: SystemNotFound,
-    }
+    # streamline the async_mode=True vs. False difference
+    def _async_mode_handler(wrapped_function):
+        @wraps(wrapped_function)
+        def wrapped(instance, *args, **kwargs):
+            awaitable = wrapped_function(instance, *args, **kwargs)
+            if instance.async_mode:
+                return awaitable
+            else:
+                loop = asyncio.get_event_loop()
+                result = loop.run_until_complete(awaitable)
+                return result
+        return wrapped
 
-    MEMBER_ERROR_CODE_LOOKUP = {
-        401: ValidationError,
-        403: ValidationError,
-        404: MemberNotFound,
-    }
+    # ==============
+    #  Main methods
+    # ==============
 
-    GROUP_ERROR_CODE_LOOKUP = {
-        401: ValidationError,
-        403: ValidationError,
-        404: GroupNotFound,
-    }
-
-    MESSAGE_ERROR_CODE_LOOKUP = {
-        401: ValidationError,
-        403: ValidationError,
-        404: MessageNotFound,
-    }
-
+    @_async_mode_handler
     def get_system(self, system: Union[SystemId,int,None]=None):
-        """
-        """
-        awaitable = self._get_system(system)
-        if self.async_mode:
-            return awaitable
-        else:
-            loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(awaitable)
-            return result
-
-    def _get_system(self, system: Union[SystemId,int,None]=None):
         return self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
             System,
             200,
-            self.SYSTEM_ERROR_CODE_LOOKUP,
+            SYSTEM_ERROR_CODE_LOOKUP,
             system=system,
         )
 
-    #async def _update_system(self, system: Union[SystemId])
-    
+    @_async_mode_handler
     def get_member(self, member: Union[MemberId,str]):
-        """
-        """
-        awaitable = self._get_member(member)
-        if self.async_mode:
-            return awaitable
-        else:
-            loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(awaitable)
-            return result
-
-    def _get_member(self, member: Union[MemberId,str]):
         return self._request_something(
             "GET",
             "{SERVER}/members/{member_ref}",
             Member,
             200,
-            self.MEMBER_ERROR_CODE_LOOKUP,
+            MEMBER_ERROR_CODE_LOOKUP,
             member=member,
         )
 
+    @_async_mode_handler
     def get_group(self, group: Union[GroupId,str]):
-        """
-        """
-        awaitable = self._get_group(group)
-        if self.async_mode:
-            return awaitable
-        else:
-            loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(awaitable)
-            return result
-
-    def _get_group(self, group: Union[GroupId,str]):
         return self._request_something(
             "GET",
             "{SERVER}/groups/{group_ref}",
             Group,
             200,
-            self.GROUP_ERROR_CODE_LOOKUP,
+            GROUP_ERROR_CODE_LOOKUP,
             group=group,
         )
 
+    @_async_mode_handler
     def get_message(self, message: int):
-        """
-        """
-        awaitable = self._get_message(message)
-        if self.async_mode:
-            return awaitable
-        else:
-            loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(awaitable)
-            return result
-
-    def _get_message(self, message: int):
         return self._request_something(
             "GET",
             "{SERVER}/messages/{message_ref}",
             Message,
             200,
-            self.MESSAGE_ERROR_CODE_LOOKUP,
+            MESSAGE_ERROR_CODE_LOOKUP,
             message=message,
         )
 
+    @_async_mode_handler
+    def get_switches(self, system: Union[SystemId,int,None]=None, *,
+        before: Timestamp=None,
+        limit: int=None,
+    ):
+        """Get list of system switches.
+
+        Returns at most 100 switches. To get more, specify using ``before`` parameter.
+
+        Arguments:
+            system: System ID to get switches from.
+
+        Keyword arguments:
+            before: Timestamp before which to get latest switches from. Default is None.
+            limit: Number of switches to return. Default (and maximum) is 100.
+        """
+        params = {}
+        if before is not None: params["before"] = before.json()
+        if limit is not None: params["limit"] = limit
+        if not params: params = None
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/switches",
+            lambda list_: [Switch(item) for item in list_],
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            system=system,
+            params=params,
+        )
+
+    @_async_mode_handler
+    def get_fronters(self, system: Union[SystemId,int,None]=None) \
+    -> Sequence[Member]:
+        """Get list of current fronters.
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/fronters",
+            lambda json: [Member(item) for item in json["members"]],
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_switch(self, switch: Union[SwitchId,str], system: Union[SystemId,int,None]=None):
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/switches/{switch_ref}",
+            Switch,
+            200,
+            SWITCH_ERROR_CODE_LOOKUP,
+            system=system,
+            switch=switch,
+        )
+
+    @_async_mode_handler
+    def get_members(self, system: Union[SystemId,int,None]=None) -> Sequence[Member]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/members",
+            lambda list_: [Member(m) for m in list_],
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_member_groups(self, member: Union[Member,str]) -> Sequence[Group]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}/groups",
+            lambda list_: [Group(g) for g in list_],
+            200,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+        )
+
+    @_async_mode_handler
+    def get_system_groups(self, system: Union[SystemId,int,None]=None) -> Sequence[Group]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/groups",
+            lambda list_: [Group(g) for g in list_],
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
+
+    @_async_mode_handler
+    def get_group_members(self, group: Union[GroupId,str]) -> Sequence[Member]:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/groups/{group_ref}/members",
+            lambda list_: [Member(m) for m in list_],
+            200,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+        )
 
     def get_fronters(self, system=None) -> Tuple[Timestamp, List[Member]]:
         """
@@ -284,4 +353,46 @@ class Client:
             system=system,
         )
 
+    @_async_mode_handler
+    def get_system_settings(self, system: Union[SystemId,str,int,None]=None) -> SystemSettings:
+        """
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/{system_ref}/settings",
+            SystemSettings,
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            system=system,
+        )
 
+    @_async_mode_handler
+    def get_system_guild_settings(self, guild_id: int) -> SystemGuildSettings:
+        """Get the system guild settings of the client's system.
+
+        Note:
+            This requires your authorization token.
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/@me/guilds/{guild_id}",
+            SystemGuildSettings,
+            200,
+            GUILD_ERROR_CODE_LOOKUP,
+            guild_id=guild_id,
+        )
+
+    @_async_mode_handler
+    def get_member_guild_settings(self, member: Union[MemberId,str], guild_id: int) -> MemberGuildSettings:
+        """Get the member guild settings of a member.
+        """
+        error_lookups = GENERIC_ERROR_CODE_LOOKUP | {403: NotOwnMember}
+        return self._request_something(
+            "GET",
+            "{SERVER}/members/{member_ref}/guilds/{guild_id}",
+            MemberGuildSettings,
+            200,
+            error_lookups,
+            member=member,
+            guild_id=guild_id,
+        )

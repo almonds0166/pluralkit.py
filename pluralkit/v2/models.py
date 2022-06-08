@@ -28,6 +28,14 @@ class Privacy(Enum):
     PRIVATE = "private"
     #UNKNOWN = None # legacy, effectively resets privacy to "public"
 
+class AutoproxyMode(Enum):
+    """Represents the autproxy modes
+    """
+    OFF = "off"
+    FRONT = "front"
+    LATCH = "latch"
+    MEMBER = "member"
+
 # Base class for all models
 
 class Model:
@@ -217,7 +225,7 @@ class Timestamp(Model):
             self.datetime = self.datetime.replace(tzinfo=pytz.utc)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{self.json()}>"
+        return f"{self.__class__.__name__}({self.json()!r})"
 
     def __str__(self):
         return (
@@ -433,37 +441,73 @@ class Timezone(Model):
 
 # Settings
 
-@dataclass
 class MemberGuildSettings(Model):
     """Member settings for a specific server.
 
-    Keyword args:
+    Attributes:
         member: The PluralKit member this set of settings pertains to.
         guild: The id of the guild (server) that applies to this member's settings.
         display_name: The member's display name in the server.
         avatar_url: The URL of the member's avatar image in the server.
     """
-    member: MemberId
-    guild: int
     display_name: Optional[str]
     avatar_url: Optional[str]
 
-@dataclass
 class SystemGuildSettings(Model):
     """System settings for a specific server.
 
-    Keyword args:
+    Attributes:
         system: The PluralKit system this set of settings pertains to.
         guild: The id of the guild (server) that applies to this member's settings.
         proxying_enabled: Whether proxying is enabled in the given server.
         tag: The system's tag (appended to the server username) for the given server.
         tag_enabled: Whether or not the system tag is shown in this server.
     """
-    system: SystemId
-    guild: int
     proxying_enabled: bool
     tag_enabled: bool
     tag: Optional[str]
+
+class SystemSettings(Model):
+    """Represents a system's settings.
+
+    Attributes:
+        timezone: The system's timezone.
+        pings_enabled: Whether this system has pings enabled.
+        latch_timeout: System's autoproxy latch timeout.
+        member_default_private: Whether members created through the bot have privacy settings set
+            to private by default.
+        group_default_private: Whether groups created through the bot have privacy settings set to
+            private by default.
+        show_private_info: Whether the bot shows the system's own private information without
+            requiring a ``-private`` flag.
+        member_limit: System member limit, usually 1000.
+        group_limit: System group limit, usually 250.
+    """
+    timezone: Timezone
+    pings_enabled: bool
+    latch_timeout: Optional[int]
+    member_default_private: bool
+    group_default_private: bool
+    show_private_info: bool
+    member_limit: int
+    group_limit: int
+
+    def __init__(self, json):
+        Model.__init__(self, json, ("description_templates"))
+
+class AutoproxySettings(Model):
+    """Represents a system's autoproxy settings
+
+    Attributes:
+        autoproxy_mode: The system's autoproxy mode.
+        autoproxy_member: ID of current autoproxy member. (None if autoproxy mode is set to
+            ``front``.)
+        last_latch_timestamp: Timestamp of last message. (None if autoproxy mode isn't set to
+            ``latch``.)
+    """
+    autoproxy_mode: AutoproxyMode
+    autoproxy_member: Optional[MemberId]
+    last_latch_timestamp: Optional[Timestamp]
 
 # Proxy tags
 
@@ -785,6 +829,7 @@ class Group(Model):
 class Switch(Model):
     """Represents a switch event.
 
+<<<<<<< HEAD
     Args:
         timestamp: Timestamp of the switch. May be a string formatted as
             ``{year}-{month}-{day}T{hour}:{minute}:{second}.{microsecond}Z`` (ISO 8601 format), a
@@ -793,17 +838,32 @@ class Switch(Model):
             list of `Member` models, though cannot be mixed.
 
     Attributes:
+=======
+    Note:
+        ``members`` can either be a list of `Member` models or a list of `MemberId`s, depending on
+        the client method used.
+
+    Attributes:
+        id (SwitchId): Switch's unique universal identifier (uuid).
+>>>>>>> fe1e319884725239b24835171191313033b43463
         timestamp (Timestamp): Timestamp of the switch.
-        members (Union[Sequence[str],Sequence[Member]]): Members involved.
+        members (Union[Sequence[Member],Sequence[MemberId]]): Members involved.
 
     .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
-"""
-    
-    def __str__(self):
-        return f"{self.__class__.__name__}<{self.timestamp}>"
+    """
+    id: SwitchId
+    timestamp: Timestamp
+    members: Union[Sequence[Member],Sequence[MemberId]]
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}<{self.timestamp}>"
+    def __init__(self, json):
+        ignore_keys = ("id", "members",) # "members" key is tricky
+        Model.__init__(self, json, ignore_keys)
+        # ...
+        self.id = SwitchId(json["id"])
+        if all(isinstance(m, str) for m in json["members"]):
+            self.members = [MemberId(m) for m in json["members"]]
+        else:
+            self.members = [Member(m) for m in json["members"]]
     
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -914,4 +974,5 @@ _VALUE_TRANSFORMATIONS = {
     "original": int,
     "sender": int,
     "guild": int,
+    "timezone": Timezone,
 }

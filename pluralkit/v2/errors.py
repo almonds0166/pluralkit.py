@@ -25,33 +25,18 @@ class ValidationError(PluralKitException):
 class NotFound(PluralKitException):
     """Exception class for "not found"-related errors
     """
-    def __init__(self, id_=None):
-        Exception.__init__(self, (
-            f"The given {self.CONTEXT} ID ({id_}) was not found in PluralKit's database."
-        ))
-
-class SystemGuildNotFound(NotFound):
-    """
-    """
-
-class MemberGuildNotFound(NotFound):
-    """
-    """
 
 class MemberNotFound(NotFound):
     """Thrown when the Member ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Member"
 
 class SystemNotFound(NotFound):
     """Thrown when the System ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "System"
 
 class SwitchNotFound(NotFound):
     """Thrown when the Switch ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Switch"
 
 class SwitchNotFoundPublic(NotFound):
     """
@@ -60,42 +45,34 @@ class SwitchNotFoundPublic(NotFound):
 class MessageNotFound(NotFound):
     """Thrown when the message ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Message"
 
 class GroupNotFound(NotFound):
     """Thrown when the Group ID is apparently not in PluralKit's database.
     """
-    CONTEXT = "Group"
 
-class NotOwnError(PluralKitException):
-    """Thrown when attempting to access private info.
+class GuildNotFound(NotFound):
+    """Thrown when the member or system has no guild settings for a given guild.
     """
-    def __init__(self, id_=None):
-        Exception.__init__(self, (
-            f"You do not seem to own the {self.CONTEXT} associated with the ID {id_}. Please make "
-            f"sure you have your correct authorization token loaded!"
-        ))
-
-class NotOwnMemberError(NotOwnError):
-    """
-    """
-    CONTEXT = "Member"
-
-class NotOwnGroupError(NotOwnError):
-    """
-    """
-    CONTEXT = "Group"
 
 # Exceptions related to lack of authorization
 
 class Unauthorized(PluralKitException):
     """Thrown when the authorization token passed to PluralKit's API is invalid or missing.
     """
-    def __init__(self):
-        Exception.__init__(self, (
-            f"System token seems to be missing or invalid. Can you check that you entered it in "
-            f"correctly?"
-        ))
+
+class NotOwnSystem(Unauthorized):
+    """
+    """
+
+class NotOwnMember(Unauthorized):
+    """
+    """
+    CONTEXT = "Member"
+
+class NotOwnGroup(Unauthorized):
+    """
+    """
+    CONTEXT = "Group"
 
 class UnauthorizedGroupList(Unauthorized):
     """
@@ -138,3 +115,43 @@ class SameSwitchMembersError(SwitchError):
 class InvalidSwitchId(SwitchError):
     """
     """
+
+GENERIC_ERROR_CODE_LOOKUP = {
+    400: GenericBadRequest,
+    403: Unauthorized,
+    404: NotFound,
+}
+
+SYSTEM_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnSystem,
+    404: SystemNotFound,
+}
+
+MEMBER_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnMember,
+    404: MemberNotFound,
+}
+
+GROUP_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnGroup,
+    404: GroupNotFound,
+}
+
+MESSAGE_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    404: MessageNotFound,
+}
+
+SWITCH_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    403: NotOwnSystem,
+    404: SwitchNotFound,
+}
+
+GUILD_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+    401: Unauthorized,
+    404: GuildNotFound,
+}
