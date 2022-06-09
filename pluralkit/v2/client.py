@@ -19,6 +19,14 @@ from .models import (
     Member, System, Group, Switch, Message,
     MemberGuildSettings, SystemGuildSettings, SystemSettings,
     Timestamp,
+    _PATCHABLE_SYSTEM_KEYS,
+    _PATCHABLE_MEMBER_KEYS,
+    _PATCHABLE_GROUP_KEYS,
+    _PATCHABLE_SWITCH_KEYS,
+    _PATCHABLE_SYSTEM_SETTINGS_KEYS,
+    _PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS,
+    _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS,
+    _PRIVACY_ASSOCIATED_KEYS,
 )
 from .errors import *
 
@@ -465,8 +473,7 @@ class Client:
 
         Arguments:
             member: The member to add to the groups.
-            groups (Sequence[Union[GroupId,Group]]): The groups to add the member to, passed in
-                as positional arguments.
+            groups (Sequence[Union[GroupId,Group]]): The groups to add the member to.
         """
         group_list = self._gather_args(groups, "groups")
         return self._request_something(
@@ -491,8 +498,7 @@ class Client:
 
         Arguments:
             member: The member to remove from the groups.
-            groups (Sequence[Union[GroupId,Group]]): The groups to remove the member from, passed
-                in as positional arguments.
+            groups (Sequence[Union[GroupId,Group]]): The groups to remove the member from.
         """
         group_list = self._gather_args(groups, "groups")
         return self._request_something(
@@ -515,8 +521,7 @@ class Client:
 
         Arguments:
             member: The member for which to set the groups.
-            groups (Sequence[Union[GroupId,Group]]): The groups to assign to the member, passed in
-                as positional arguments.
+            groups (Sequence[Union[GroupId,Group]]): The groups to assign to the member.
         """
         group_list = self._gather_args(groups, "groups")
         return self._request_something(
@@ -537,8 +542,7 @@ class Client:
 
         Arguments:
             group: The group to add the members to.
-            members (Union[Member]): The members to add to the group, passed in as positional
-                arguments.
+            members (Sequence[Union[Member,MemberId]]): The members to add to the group.
         """
         member_list = self._gather_args(members, "members")
         return self._request_something(
@@ -563,8 +567,7 @@ class Client:
 
         Arguments:
             group: The group to remove the members from.
-            members (Union[Member]): The members to remove from the group, passed in as positional
-                arguments.
+            members (Sequence[Union[Member,MemberId]]): The members to remove from the group.
         """
         member_list = self._gather_args(members, "members")
         return self._request_something(
@@ -587,8 +590,7 @@ class Client:
 
         Arguments:
             group: The group to remove the members from.
-            members (Union[Member]): The members to assign to the group, passed in as positional
-                arguments.
+            members (Sequence[Union[Member,MemberId]]): The members to assign to the group.
         """
         member_list = self._gather_args(members, "members")
         return self._request_something(
@@ -601,3 +603,349 @@ class Client:
             payload=member_list,
         )
 
+    # 
+    #  update (patches)
+    # 
+
+    def _check_update_keys(self, context, kwargs, allowed, require_at_least_one_arg=True):
+        if require_at_least_one_arg and not kwargs:
+            msg = f"{context} expects at least 1 keyword argument"
+            raise TypeError(msg)
+        for key in kwargs:
+            if key not in allowed:
+                msg = f"{context} got an unexpected keyword argument {key!r}"
+                raise TypeError(msg)
+
+    @_async_mode_handler
+    def update_system(self, **kwargs) -> System:
+        """Update your system.
+
+        Keyword arguments:
+            name
+            description
+            tag
+            pronouns
+            avatar_url
+            banner
+            color
+            description_privacy
+            pronoun_privacy
+            member_list_privacy
+            group_list_privacy
+            front_privacy
+            front_history_privacy
+        """
+        self._check_update_keys("update_system()", kwargs, _PATCHABLE_SYSTEM_KEYS)
+        payload = {}
+        privacies = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_SYSTEM_KEYS[key](value)
+            if key in _PRIVACY_ASSOCIATED_KEYS:
+                privacies[key] = json_value
+            else:
+                payload[key] = json_value
+        if privacies: payload["privacy"] = privacies
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/systems/@me",
+            System,
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            payload=payload,
+        )
+
+    @_async_mode_handler
+    def update_system_settings(self, **kwargs) -> SystemSettings:
+        """Update your system settings.
+
+        Keyword arguments:
+            timezone
+            pings_enabled
+            latch_timeout
+            member_default_private
+            group_default_private
+            show_private_info
+        """
+        self._check_update_keys("update_system_settings()",
+            kwargs, _PATCHABLE_SYSTEM_SETTINGS_KEYS)
+        payload = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_SYSTEM_SETTINGS_KEYS[key](value)
+            payload[key] = json_value
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/systems/@me/settings",
+            SystemSettings,
+            200,
+            SYSTEM_ERROR_CODE_LOOKUP,
+            payload=payload
+        )
+
+    @_async_mode_handler
+    def update_system_guild_settings(self, guild_id: int, **kwargs) -> SystemGuildSettings:
+        """Update your system guild settings.
+
+        Arguments:
+            guild_id
+
+        Keyword arguments:
+            proxying_enabled
+            tag
+            tag_enabled
+        """
+        self._check_update_keys("update_system_guild_settings()",
+            kwargs, _PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS)
+        payload = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS[key](value)
+            payload[key] = json_value
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/systems/@me/guilds/{guild_id}",
+            SystemGuildSettings,
+            200,
+            GUILD_ERROR_CODE_LOOKUP,
+            guild_id=guild_id,
+            payload=payload
+        )
+
+    @_async_mode_handler
+    def update_member(self, member: Union[MemberId,Member], **kwargs) -> Member:
+        """Update a system member
+        """
+        if isinstance(member, Member): member = member.id
+        self._check_update_keys("update_member()", kwargs, _PATCHABLE_MEMBER_KEYS)
+        payload = {}
+        privacies = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_MEMBER_KEYS[key](value)
+            if key in _PRIVACY_ASSOCIATED_KEYS:
+                privacies[key] = json_value
+            else:
+                payload[key] = json_value
+        if privacies: payload["privacy"] = privacies
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/members/{member_ref}",
+            Member,
+            200,
+            MEMBER_ERROR_CODE_LOOKUP,
+            member=member,
+            payload=payload,
+        )
+
+    @_async_mode_handler
+    def update_member_guild_settings(self,
+        member: Union[Member,MemberId], guild_id: int, **kwargs) -> MemberGuildSettings:
+        """Update your member guild settings.
+
+        Arguments:
+            member
+            guild_id
+
+        Keyword arguments:
+            proxying_enabled
+            tag
+            tag_enabled
+        """
+        self._check_update_keys("update_member_guild_settings()",
+            kwargs, _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS)
+        payload = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS[key](value)
+            payload[key] = json_value
+        if isinstance(member, Member): member = member.id
+        error_lookups = GENERIC_ERROR_CODE_LOOKUP | {403: NotOwnMember}
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/members/{member_ref}/guilds/{guild_id}",
+            MemberGuildSettings,
+            200,
+            error_lookups,
+            member=member,
+            guild_id=guild_id,
+            payload=payload
+        )
+
+    @_async_mode_handler
+    def update_group(self, group: Union[GroupId,Group], **kwargs) -> Group:
+        """
+        """
+        self._check_update_keys("update_group()", kwargs, _PATCHABLE_GROUP_KEYS)
+        payload = {}
+        privacies = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_GROUP_KEYS[key](value)
+            if key in _PRIVACY_ASSOCIATED_KEYS:
+                privacies[key] = json_value
+            else:
+                payload[key] = json_value
+        if privacies: payload["privacy"] = privacies
+        if isinstance(group, Group): group = group.id
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/groups/{group_ref}",
+            Group,
+            200,
+            GROUP_ERROR_CODE_LOOKUP,
+            group=group,
+            payload=payload,
+        )
+
+    # note: two endpoints per this method
+    @_async_mode_handler
+    def update_switch(self, switch: Union[SwitchId,Switch], **kwargs) -> Switch:
+        """Update a logged switch.
+
+        Arguments:
+            switch
+
+        Keyword arguments:
+            timestamp: When the switch happened.
+            members (Sequence[Union[Member,MemberId]]): The list of member IDs.
+        """
+        self._check_update_keys("update_switch()", kwargs, _PATCHABLE_SWITCH_KEYS)
+        awaitables = []
+        if "members" in kwargs:
+            members = _PATCHABLE_SWITCH_KEYS["members"](kwargs["members"])
+            awaitable = self._request_something(
+                "PATCH",
+                "{SERVER}/systems/@me/switches/{switch_ref}/members",
+                Switch,
+                200,
+                SWITCH_ERROR_CODE_LOOKUP,
+                switch=switch,
+                payload=members,
+            )
+            awaitables.append(awaitable)
+        if "timestamp" in kwargs:
+            timestamp = _PATCHABLE_SWITCH_KEYS["timestamp"](kwargs["timestamp"])
+            awaitable = self._request_something(
+                "PATCH",
+                "{SERVER}/systems/@me/switches/{switch_ref}",
+                Switch,
+                200,
+                SWITCH_ERROR_CODE_LOOKUP,
+                switch=switch,
+                payload={"timestamp": timestamp},
+            )
+            awaitables.append(awaitable)
+        
+        async def send_request(awaitables):
+            results = []
+            for a in awaitables:
+                results.append(await a) # purposefully block
+
+            return results[-1]
+
+        return send_request(awaitables)
+
+    @_async_mode_handler
+    def new_member(self, name: str, **kwargs) -> Member:
+        """Create a new member in your system.
+
+        Arguments:
+            name: The name of the new member. 100 character limit.
+
+        Keyword args:
+            display_name
+            color
+            birthday
+            pronouns
+            avatar_url
+            banner
+            description
+            proxy_tags
+            keep_proxy
+            visibility
+            name_privacy
+            description_privacy
+            birthday_privacy
+            pronoun_privacy
+            avatar_privacy
+            metadata_privacy
+        """
+        name = _PATCHABLE_MEMBER_KEYS["name"](name)
+        self._check_update_keys("new_member()", kwargs, _PATCHABLE_MEMBER_KEYS,
+            require_at_least_one_arg)
+        payload = {"name": name}
+        privacies = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_MEMBER_KEYS[key](value)
+            if key in _PRIVACY_ASSOCIATED_KEYS:
+                privacies[key] = json_value
+            else:
+                payload[key] = json_value
+        if privacies: payload["privacy"] = privacies
+        return self._request_something(
+            "POST",
+            "{SERVER}/members",
+            Member,
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            payload=payload,
+        )
+
+    @_async_mode_handler
+    def new_group(self, name: str, **kwargs) -> Group:
+        """Create a new group
+
+        Arguments:
+            name: Name of the group. 100 character limit.
+
+        Keyword args:
+            display_name
+            description
+            icon
+            banner
+            color
+            name_privacy
+            description_privacy
+            icon_privacy
+            list_privacy
+            metadata_privacy
+            visibility
+        """
+        name = _PATCHABLE_GROUP_KEYS["name"](name)
+        self._check_update_keys("new_group()", kwargs, _PATCHABLE_GROUP_KEYS,
+            require_at_least_one_arg=False)
+        payload = {"name": name}
+        privacies = {}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_GROUP_KEYS[key](value)
+            if key in _PRIVACY_ASSOCIATED_KEYS:
+                privacies[key] = json_value
+            else:
+                payload[key] = json_value
+        if privacies: payload["privacy"] = privacies
+        return self._request_something(
+            "POST",
+            "{SERVER}/groups",
+            Group,
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            payload=payload,
+        )
+
+    @_async_mode_handler
+    def new_switch(self, members, timestamp=None) -> Switch:
+        """Log a new switch
+
+        Arguments:
+            members: List of members in this switch.
+
+        Keyword args:
+            timestamp: Defaults to "now".
+        """
+        payload = {}
+        payload["members"] = _PATCHABLE_SWITCH_KEYS["members"](members)
+        if timestamp is not None:
+            payload["timestamp"] = _PATCHABLE_SWITCH_KEYS["timestamp"](timestamp)
+        return self._request_something(
+            "POST",
+            "{SERVER}/systems/{system_ref}/switches",
+            Switch,
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            payload=payload,
+        )

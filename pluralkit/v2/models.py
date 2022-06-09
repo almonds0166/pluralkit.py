@@ -894,3 +894,184 @@ _VALUE_TRANSFORMATIONS = {
     "guild": int,
     "timezone": Timezone,
 }
+
+# keys the user can update, along with any checks
+
+def _max_string_length(context, max_len, null_allowed=True):
+    def check(value):
+        if null_allowed and value is None: return None
+        if isinstance(value, str) and len(value) <= max_len: return value
+        msg = (
+            f"value for {context!r} must be shorter than {max_len} characters "
+            f"(counted {len(value)})"
+        )
+        raise ValueError(msg)
+    return check
+
+def _check_color(c):
+    if isinstance(c, Color): return c.json()
+    c = Color(c) # will throw error if malformed
+    return c.json()
+
+def _check_privacy(p):
+    if p is None: return None # null allowed
+    if isinstance(p, Privacy): return p.value
+    p = Privacy(p) # will throw error if malformed
+    return p.value
+
+def _check_timestamp(t):
+    if isinstance(t, Timestamp): return t.json()
+    t = Timestamp(t) # will throw error if malformed
+    return t.json()
+
+def _check_birthday(b):
+    if b is None: return None # null allowed
+    if isinstance(b, Birthday): return b.json()
+    if isinstance(b, Timestamp): return Birthday(b).json()
+    b = Birthday(b) # will throw error if malformed
+    return b.json()
+
+def _check_timezone(tz):
+    if tz is None: return "UTC"
+    if isinstance(tz, Timezone): return tz.json()
+    tz = Timezone(tz) # will throw error if malformed
+    return tz.json()
+
+def _check_proxy_tags(pts):
+    """Allowed: ProxyTag, ProxyTags, Sequence[ProxyTag]
+    """
+    if isinstance(pts, ProxyTags): return pts.json()
+    if isinstance(pts, ProxyTag): return [pts.json()],
+    try:
+        json = []
+        for pt in pts:
+            if not isinstance(pt, ProxyTag):
+                pt = ProxyTag(proxy_tag=pt)
+            json.append(pt.json())
+        return json
+    except (TypeError, ValueError):
+        msg = (
+            f"Could not cast {pts!r} to ProxyTags. "
+            f"Please pass in a ProxyTags object, a ProxyTag object, or an "
+            f"iterable of ProxyTag objects."
+        )
+        raise ValueError(msg)
+
+def _check_members(members):
+    """For `Client.update_switch`
+    """
+    # special case for one member
+    if isinstance(members, MemberId): return [str(members)]
+    if isinstance(members, Member): return [str(members.id)]
+    # otherwise
+    try:
+        json = []
+        for m in members:
+            if isinstance(m, Member):
+                json.append(str(m.id))
+            elif isinstance(m, MemberId):
+                json.append(str(m))
+            else:
+                m = MemberId(m)
+                json.append(str(m))
+        return json
+    except (TypeError, ValueError):
+        msg = (
+            f"Could not cast {members!r} to a list of MemberId or Member. "
+            f"Please pass in a list of MemberId or Member objects."
+        )
+        raise ValueError(msg)
+
+
+_PATCHABLE_SYSTEM_KEYS = {
+    "name": _max_string_length("name", 100, null_allowed=False),
+    "description": _max_string_length("description", 1000),
+    "tag": _max_string_length("tag", 79),
+    "pronouns": _max_string_length("pronouns", 100),
+    # API will report whether any urls are publically (in)accessible
+    "avatar_url": _max_string_length("avatar_url", 256),
+    "banner": _max_string_length("banner", 256),
+    "color": _check_color,
+    "description_privacy": _check_privacy,
+    "pronoun_privacy": _check_privacy,
+    "member_list_privacy": _check_privacy,
+    "group_list_privacy": _check_privacy,
+    "front_privacy": _check_privacy,
+    "front_history_privacy": _check_privacy,
+}
+
+_PATCHABLE_MEMBER_KEYS = {
+    "name": _max_string_length("name", 100, null_allowed=False),
+    "display_name": _max_string_length("display_name", 100),
+    "color": _check_color,
+    "birthday": _check_birthday,
+    "pronouns": _max_string_length("pronouns", 100),
+    "avatar_url": _max_string_length("avatar_url", 256),
+    "banner": _max_string_length("banner", 256),
+    "description": _max_string_length("description", 1000),
+    "proxy_tags": _check_proxy_tags,
+    "keep_proxy": bool,
+    "visibility": _check_privacy,
+    "name_privacy": _check_privacy,
+    "description_privacy": _check_privacy,
+    "birthday_privacy": _check_privacy,
+    "pronoun_privacy": _check_privacy,
+    "avatar_privacy": _check_privacy,
+    "metadata_privacy": _check_privacy,
+}
+
+_PATCHABLE_GROUP_KEYS = {
+    "name": _max_string_length("name", 100, null_allowed=False),
+    "display_name": _max_string_length("display_name", 100),
+    "description": _max_string_length("description", 1000),
+    "icon": _max_string_length("icon", 256),
+    "banner": _max_string_length("banner", 256),
+    "color": _check_color,
+    "name_privacy": _check_privacy,
+    "description_privacy": _check_privacy,
+    "icon_privacy": _check_privacy,
+    "list_privacy": _check_privacy,
+    "metadata_privacy": _check_privacy,
+    "visibility": _check_privacy,
+}
+
+_PATCHABLE_SWITCH_KEYS = {
+    "members": _check_members,
+    "timestamp": _check_timestamp,
+}
+
+_PATCHABLE_SYSTEM_SETTINGS_KEYS = {
+    "timezone": _check_timezone,
+    "pings_enabled": bool,
+    "latch_timeout": lambda n: int(n), # time in seconds
+    "member_default_private": bool,
+    "group_default_private": bool,
+    "show_private_info": bool,
+}
+
+_PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS = { # requires guild id
+    "proxying_enabled": bool,
+    "tag": _max_string_length("tag", 79),
+    "tag_enabled": bool,
+}
+
+_PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS = { # requires guild id
+    "display_name": _max_string_length("display_name", 100),
+    "avatar_url": _max_string_length("avatar_url", 256),
+}
+
+_PRIVACY_ASSOCIATED_KEYS = set((
+    "visibility",
+    "name_privacy",
+    "description_privacy",
+    "birthday_privacy",
+    "pronoun_privacy",
+    "avatar_privacy",
+    "metadata_privacy",
+    "member_list_privacy",
+    "group_list_privacy",
+    "front_privacy",
+    "front_history_privacy",
+    "icon_privacy",
+    "list_privacy",
+))
