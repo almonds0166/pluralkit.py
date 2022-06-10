@@ -634,7 +634,7 @@ class ProxyTags(Model):
             self._proxy_tags = tuple(proxy_tags)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{len(self._proxy_tags)}>"
+        return f"{self.__class__.__name__}({list(self._proxy_tags)!r})"
 
     def __iter__(self):
         for proxy_tag in self._proxy_tags:
@@ -875,6 +875,7 @@ class Message(Model):
         original: The ID of the (presumably deleted) original Discord message sent by the account.
         sender: The user ID of the account that sent the message.
         channel: The ID of the channel the message was sent to.
+        guild: The ID of the guild the message was sent in.
         system: The system that proxied the message. ``None`` if system was deleted.
         member: The member that proxied the message. ``None`` if member was deleted.
     """
@@ -886,9 +887,6 @@ class Message(Model):
     guild: int
     system: Optional[System]
     member: Optional[Member]
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.id})"
     
     def __eq__(self, other):
         return self.id == other.id

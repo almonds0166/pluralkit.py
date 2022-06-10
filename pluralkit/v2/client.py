@@ -3,8 +3,8 @@ from typing import (
     Any,
     Union, Optional,
     Tuple, List, Set, Sequence, Dict,
-    Awaitable, AsyncGenerator, Coroutine,
     Callable,
+    AsyncGenerator, Awaitable,
 )
 import datetime
 import asyncio
@@ -28,9 +28,41 @@ from .models import (
     _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS,
     _PRIVACY_ASSOCIATED_KEYS,
 )
-from .errors import *
+from .errors import (
+    PluralKitException,
+    HTTPError,
+    GenericBadRequest,
+    NotFound,
+    SystemNotFound,
+    MemberNotFound,
+    GroupNotFound,
+    SwitchNotFound,
+    MessageNotFound,
+    GuildNotFound,
+    Unauthorized,
+    NotOwnSystem,
+    NotOwnMember,
+    NotOwnGroup,
+    GENERIC_ERROR_CODE_LOOKUP,
+    SYSTEM_ERROR_CODE_LOOKUP,
+    MEMBER_ERROR_CODE_LOOKUP,
+    GROUP_ERROR_CODE_LOOKUP,
+    MESSAGE_ERROR_CODE_LOOKUP,
+    SWITCH_ERROR_CODE_LOOKUP,
+    GUILD_ERROR_CODE_LOOKUP,
+)
 
 SERVER = "https://api.pluralkit.me/v2"
+
+async def aiter(generator: Awaitable) -> AsyncGenerator:
+    """For conversion of any awaitables to async generators/sequences
+
+    Applies to async_mode=True Sequence methods
+    """
+    items = await generator
+    for item in items:
+        yield item
+        await asyncio.sleep(0)
 
 class Client:
     """Represents a client that interacts with the PluralKit API.
@@ -190,7 +222,12 @@ class Client:
         def wrapped(instance, *args, **kwargs):
             awaitable = wrapped_function(instance, *args, **kwargs)
             if instance.async_mode:
-                return awaitable
+                return_type = wrapped_function.__annotations__.get("return")
+                try:
+                    is_generator = return_type is not None and return_type._name == Sequence._name
+                except AttributeError:
+                    is_generator = False
+                return aiter(awaitable) if is_generator else awaitable
             else:
                 loop = asyncio.get_event_loop()
                 result = loop.run_until_complete(awaitable)

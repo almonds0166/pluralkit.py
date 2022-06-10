@@ -30,9 +30,9 @@ For `virtual environments`_, use pip like usual: ::
 
 .. _`virtual environments`: https://docs.python.org/3/tutorial/venv.html
 
-To install the unstable version: ::
+To install the unstable version and test the latest changes: ::
 
-   git clone https://github.com/almonds0166/pluralkit.py
+   git clone -b main https://github.com/almonds0166/pluralkit.py
    cd pluralkit.py
    pip install -U .
 
@@ -48,7 +48,7 @@ pluralkit.py uses the `Client` class to coordinate with `PluralKit's API`_ and a
 Client
 ~~~~~~
 
-Below is an async example script that prints one's system members and system description, given one's :ref:`authorization token <token>`.
+Below is an async example script that prints one's system members and system description, given the :ref:`authorization token <token>`.
 
 .. code-block:: python
 
@@ -92,17 +92,22 @@ The User-Agent header may be set with the argument ``user_agent``.
 
 See here for the documentation of the most common Client methods:
 
-- `Client.delete_member`
-- `Client.edit_member`
-- `Client.edit_system`
-- `Client.get_fronters`
-- `Client.get_member`
-- `Client.get_members`
-- `Client.get_message`
-- `Client.get_switches`
 - `Client.get_system`
+- `Client.update_system`
+- `Client.get_members`
+- `Client.get_member`
 - `Client.new_member`
+- `Client.update_member`
+- `Client.delete_member`
+- `Client.get_groups`
+- `Client.new_group`
+- `Client.update_group`
+- `Client.delete_group`
+- `Client.get_message`
+- `Client.get_fronters`
+- `Client.get_switches`
 - `Client.new_switch`
+- `Client.update_switch`
 
 .. _`discord.py`: https://discordpy.readthedocs.io/en/stable/
 .. _`PluralKit's API`: https://pluralkit.me/
@@ -160,26 +165,32 @@ System
 
 `System` models are returned by the Client methods `Client.get_system` and `Client.edit_system` as well as the `Message.system` attribute. For example::
 
-   >>> from pluralkit import Client
+   >>> from pluralkit import Client, SystemId, MemberId
    >>> pk = Client(async_mode=False)
-   >>> system = pk.get_system("abcde")
+   >>> sid = SystemId("abcde")
+   >>> system = pk.get_system(sid)
    >>> system
-   System('abcde')
+   <pluralkit.v2.models.System object at 0x00000177A0537190>
 
 Note, as of writing, there is no system with ID ``abcde``, this is just for the sake of example.
 
 System has the following useful attributes:
 
-- `System.avatar_url`
+- `System.name`
+- `System.id`
 - `System.created`
+- `System.tag`
 - `System.description`
 - `System.description_privacy`
-- `System.front_history_privacy`
 - `System.front_privacy`
-- `System.id`
+- `System.front_history_privacy`
 - `System.member_list_privacy`
-- `System.name`
-- `System.tag`
+- `System.group_list_privacy`
+- `System.pronouns`
+- `System.pronoun_privacy`
+- `System.avatar_url`
+- `System.banner`
+- `System.color`
 - `System.tz`
 
 Note that the privacy attributes will all be `Privacy.UNKNOWN` unless the Client is using the authorization token corresponding to the system.
@@ -189,37 +200,40 @@ Member
 
 `Member` models are returned by the Client methods `Client.new_member`, `Client.get_member`, `Client.get_members`, and `Client.edit_member` as well as the `Message.member` attribute. For example: ::
 
-   >>> member = pk.get_member("fghij")
+   >>> mid = MemberId("fghij")
+   >>> member = pk.get_member(mid)
    >>> member
-   Member('fghij')
+   <pluralkit.v2.models.Member object at 0x0000021D04497A90>
 
 Note, as of writing, there is no member with ID ``fghij``, this is just for the sake of example.
 
 Member has the following useful attributes:
 
-- `Member.avatar_privacy`
-- `Member.avatar_url`
-- `Member.birthday`
-- `Member.birthday_privacy`
-- `Member.color`
+- `Member.name`
+- `Member.display_name`
+- `Member.name_privacy`
+- `Member.id`
+- `Member.system`
 - `Member.created`
 - `Member.description`
 - `Member.description_privacy`
-- `Member.display_name`
-- `Member.id`
-- `Member.keep_proxy`
-- `Member.metadata_privacy`
-- `Member.name`
-- `Member.name_privacy`
-- `Member.pronoun_privacy`
+- `Member.birthday`
+- `Member.birthday_privacy`
 - `Member.pronouns`
+- `Member.pronoun_privacy`
+- `Member.avatar_url`
+- `Member.avatar_privacy`
+- `Member.banner`
 - `Member.proxy_tags`
+- `Member.keep_proxy`
 - `Member.visibility`
+- `Member.metadata_privacy`
+- `Member.color`
 
 Switch
 ^^^^^^
 
-`Switch` models are returned by the Client methods `Client.get_switches` and `Client.new_switch`.
+`Switch` models are returned by a handful of the client methods pertaining to switches.
 
 Switch models have the following useful attributes:
 
@@ -233,17 +247,18 @@ Message
 
    >>> msg = pk.get_message(859884066302984221)
    >>> msg
-   Message(859884066302984221)
+   <pluralkit.v2.models.Message object at 0x0000025B692DAE50>
 
 Message objects have the following useful attributes:
 
-- `Message.channel`
+- `Message.timestamp`
 - `Message.id`
-- `Message.member`
 - `Message.original`
 - `Message.sender`
+- `Message.channel`
+- `Message.guild`
 - `Message.system`
-- `Message.timestamp`
+- `Message.member`
 
 .. _proxytags:
 
@@ -253,7 +268,7 @@ ProxyTags
 `ProxyTags` objects (not to be confused with :ref:`ProxyTag objects <proxytag>` below) are found under `Member.proxy_tags`. For example: ::
 
    >>> member.proxy_tags
-   ProxyTags<1>
+   ProxyTags([ProxyTag(prefix='Test:')])
 
 In the example above, this member has a set of one proxy tag.
 
@@ -263,11 +278,11 @@ Like a list or tuple, ProxyTags objects can be iterated through as well as index
    >>> pt
    ProxyTag(prefix='Test:')
 
-And ProxyTags objects have a `~ProxyTags.match` method to determine whether a given string would be proxied by PluralKit.
+And ProxyTags objects can be called to determine whether a given string would be proxied by PluralKit.
 
-   >>> member.proxy_tags.match("Hello!")
+   >>> member.proxy_tags("Hello!")
    False
-   >>> member.proxy_tags.match("Test: Hello!")
+   >>> member.proxy_tags("Test: Hello!")
    True
 
 .. _proxytag:
@@ -288,11 +303,11 @@ Each ProxyTag object has an optional `~ProxyTag.prefix` and `~ProxyTag.suffix` a
    >>> pt.suffix is None
    True
 
-Like :ref:`ProxyTags objects above <proxytags>`, ProxyTag objects have a `~ProxyTag.match` method: ::
+Like :ref:`ProxyTags objects above <proxytags>`, ProxyTag objects can be called for a message match test: ::
 
-   >>> pt.match("I hope you're having a good day!")
+   >>> pt("I hope you're having a good day!")
    False
-   >>> pt.match("Test: I hope you're having a good day!")
+   >>> pt("Test: I hope you're having a good day!")
    True
 
 Color
