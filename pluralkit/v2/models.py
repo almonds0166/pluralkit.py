@@ -91,15 +91,9 @@ class PluralKitId(Model):
         assert len(id) == 5 and all(c in ALPHABET for c in id), \
             f"{self.CONTEXT} ID should be a five-character lowercase string"
 
-    def __init__(self, uuid=None, id=None):
-        # check if id was given first
-        if uuid is not None and len(uuid) == 5 and all(c in ALPHABET for c in uuid):
-            _ = id
-            id = uuid
-            uuid = _
-
+    def __init__(self, id=None, uuid=None):
         if uuid is None and id is None:
-            raise ValueError(f"{self.CONTEXT} ID object must include at least one of: uuid, id")
+            raise ValueError(f"{self.CONTEXT} ID object must include at least one of: id, uuid")
 
         if id is not None: self._check_id(id)
 
@@ -114,7 +108,9 @@ class PluralKitId(Model):
         return f"{self.uuid}" if self.uuid is not None else f"{self.id}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.uuid!r}, {self.id!r})"
+        attrs = f"{self.id!r}"
+        if self.uuid is not None: attrs += f", {self.uuid!r}"
+        return f"{self.__class__.__name__}({attrs})"
 
     json = __str__
 
@@ -825,8 +821,8 @@ class Switch(Model):
     """Represents a switch event.
 
     Note:
-        ``members`` can either be a list of `Member` models or a list of `MemberId`s, depending on
-        the client method used.
+        ``members`` can either be a list of `Member` models or a list of `MemberId` objects,
+        depending on the client method used.
 
     Attributes:
         id: Switch's unique universal identifier (uuid).

@@ -7,21 +7,79 @@ API reference
 Client
 ------
 
-TBD
+.. autoclass:: Client
+   :members:
 
 Models
 ------
 
-Model
-~~~~~
+System
+~~~~~~
 
-.. autoclass:: Model
+.. autoclass:: System
    :members:
 
-PluralKitId
-~~~~~~~~~~~
+SystemSettings
+~~~~~~~~~~~~~~
 
-.. autoclass:: PluralKitId
+.. autoclass:: SystemSettings
+   :members:
+
+SystemGuildSettings
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SystemGuildSettings
+   :members:
+
+Member
+~~~~~~
+
+.. autoclass:: Member
+   :members:
+
+MemberGuildSettings
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: MemberGuildSettings
+   :members:
+
+Group
+~~~~~
+
+.. autoclass:: Group
+   :members:
+
+Switch
+~~~~~~
+
+.. autoclass:: Switch
+   :members:
+
+Message
+~~~~~~~
+
+.. autoclass:: Message
+   :members:
+
+Primitives
+----------
+
+SystemId
+~~~~~~~~
+
+.. autoclass:: SystemId
+   :members:
+
+MemberId
+~~~~~~~~
+
+.. autoclass:: MemberId
+   :members:
+
+GroupId
+~~~~~~~
+
+.. autoclass:: GroupId
    :members:
 
 Birthday
@@ -36,42 +94,6 @@ Color
 .. autoclass:: Color
    :members:
 
-Group
-~~~~~
-
-.. autoclass:: Group
-   :members:
-
-GroupId
-~~~~~~~
-
-.. autoclass:: GroupId
-   :members:
-
-Member
-~~~~~~
-
-.. autoclass:: Member
-   :members:
-
-MemberId
-~~~~~~~~
-
-.. autoclass:: MemberId
-   :members:
-
-MemberGuildSettings
-~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: MemberGuildSettings
-   :members:
-
-Message
-~~~~~~~
-
-.. autoclass:: Message
-   :members:
-
 ProxyTag
 ~~~~~~~~
 
@@ -82,30 +104,6 @@ ProxyTags
 ~~~~~~~~~
 
 .. autoclass:: ProxyTags
-   :members:
-
-Switch
-~~~~~~
-
-.. autoclass:: Switch
-   :members:
-
-System
-~~~~~~
-
-.. autoclass:: System
-   :members:
-
-SystemId
-~~~~~~~~
-
-.. autoclass:: SystemId
-   :members:
-
-SystemGuildSettings
-~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: SystemGuildSettings
    :members:
 
 Timestamp
@@ -143,4 +141,72 @@ Exceptions
 
 .. currentmodule:: pluralkit.v2.errors
 
-TBD
+PluralKitException
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: PluralKitException
+
+HTTPError
+~~~~~~~~~
+
+.. autoclass:: HTTPError
+
+GenericBadRequest
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: GenericBadRequest
+
+NotFound
+~~~~~~~~
+
+.. autoclass:: NotFound
+
+SystemNotFound
+~~~~~~~~~~~~~~
+
+.. autoclass:: SystemNotFound
+
+MemberNotFound
+~~~~~~~~~~~~~~
+
+.. autoclass:: MemberNotFound
+
+GroupNotFound
+~~~~~~~~~~~~~
+
+.. autoclass:: GroupNotFound
+
+SwitchNotFound
+~~~~~~~~~~~~~~
+
+.. autoclass:: SwitchNotFound
+
+MessageNotFound
+~~~~~~~~~~~~~~~
+
+.. autoclass:: MessageNotFound
+
+GuildNotFound
+~~~~~~~~~~~~~
+
+.. autoclass:: GuildNotFound
+
+Unauthorized
+~~~~~~~~~~~~
+
+.. autoclass:: Unauthorized
+
+NotOwnSystem
+~~~~~~~~~~~~
+
+.. autoclass:: NotOwnSystem
+
+NotOwnMember
+~~~~~~~~~~~~
+
+.. autoclass:: NotOwnMember
+
+NotOwnGroup
+~~~~~~~~~~~
+
+.. autoclass:: NotOwnGroup
