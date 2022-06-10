@@ -8,7 +8,7 @@ from __version__ import __version__
 # Thanks to Mark Smith (@Judy2k)'s very helpful talk about PyPI
 # https://youtu.be/GIF3LaRqgXo?t=297
 
-with open("README.md", "r") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
    long_description = fh.read()
 
 setup(
@@ -51,6 +51,7 @@ setup(
          "check-manifest==0.46", # creating MANIFEST.in
          "twine==3.4.1", # for uploading to PyPI
          "wheel>=0.36.2", # for building wheels
+         "jinja2<3.1.0", # dependency, RDT issue 9037
       ]
    },
    python_requires=">=3.6.0",
