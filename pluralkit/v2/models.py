@@ -23,13 +23,15 @@ from .errors import *
 
 class Privacy(Enum):
     """Represents the privacies accepted by PluralKit.
+
+    In general, default privacies are public.
     """
     PUBLIC = "public"
     PRIVATE = "private"
     #UNKNOWN = None # legacy, effectively resets privacy to "public"
 
 class AutoproxyMode(Enum):
-    """Represents the autproxy modes
+    """Represents the autproxy modes.
     """
     OFF = "off"
     FRONT = "front"
@@ -78,7 +80,7 @@ class Model:
 # IDs
 
 class PluralKitId(Model):
-    """Base class for PluralKit IDs
+    """Base class for PluralKit IDs.
     """
     uuid: Optional[str]
     id: Optional[str]
@@ -90,6 +92,12 @@ class PluralKitId(Model):
             f"{self.CONTEXT} ID should be a five-character lowercase string"
 
     def __init__(self, uuid=None, id=None):
+        # check if id was given first
+        if uuid is not None and len(uuid) == 5 and all(c in ALPHABET for c in uuid):
+            _ = id
+            id = uuid
+            uuid = _
+
         if uuid is None and id is None:
             raise ValueError(f"{self.CONTEXT} ID object must include at least one of: uuid, id")
 
@@ -111,24 +119,24 @@ class PluralKitId(Model):
     json = __str__
 
 class MemberId(PluralKitId):
-    """Member IDs
+    """Member IDs.
     """
     CONTEXT = "Member"
 
 class SystemId(PluralKitId):
-    """System IDs
+    """System IDs.
     """
     CONTEXT = "System"
 
 class GroupId(PluralKitId):
-    """Group IDs
+    """Group IDs.
     """
     CONTEXT = "Group"
 
 class SwitchId(PluralKitId):
-    """Switch IDs
+    """Switch IDs.
 
-    Switches don't have five-letter IDs, so this must be given the switch UUID.
+    Switches don't have five-letter IDs, so this must be given the full switch UUID.
     """
     uuid: str
     CONTEXT = "Switch"
@@ -176,7 +184,7 @@ class Color(colour.Color, Model):
 class Timestamp(Model):
     """Represents a PluralKit UTC timestamp.
 
-    This class works by wrapping around a `datetime` object. To access it, use ``ts.datetime``, for
+    This class works by wrapping around a `datetime` object. Use ``ts.datetime`` to access it, for
     any `Timestamp` ``ts``.
 
     This class may be initialized in the same way that a `datetime` object is. It may also take a
@@ -363,6 +371,8 @@ class Timestamp(Model):
 
 class Birthday(Timestamp):
     """Represents a birthday.
+
+    This model inherits from `Timestamp`.
     """
     def __str__(self):
         if self.hidden_year:
@@ -446,10 +456,8 @@ class MemberGuildSettings(Model):
     """Member settings for a specific server.
 
     Attributes:
-        member: The PluralKit member this set of settings pertains to.
-        guild: The id of the guild (server) that applies to this member's settings.
-        display_name: The member's display name in the server.
-        avatar_url: The URL of the member's avatar image in the server.
+        display_name: The member's display name in the guild.
+        avatar_url: The URL of the member's avatar image in the guild.
     """
     display_name: Optional[str]
     avatar_url: Optional[str]
@@ -458,8 +466,6 @@ class SystemGuildSettings(Model):
     """System settings for a specific server.
 
     Attributes:
-        system: The PluralKit system this set of settings pertains to.
-        guild: The id of the guild (server) that applies to this member's settings.
         proxying_enabled: Whether proxying is enabled in the given server.
         tag: The system's tag (appended to the server username) for the given server.
         tag_enabled: Whether or not the system tag is shown in this server.
@@ -497,7 +503,7 @@ class SystemSettings(Model):
         Model.__init__(self, json, ("description_templates"))
 
 class AutoproxySettings(Model):
-    """Represents a system's autoproxy settings
+    """Represents a system's autoproxy settings.
 
     Attributes:
         autoproxy_mode: The system's autoproxy mode.
@@ -514,6 +520,15 @@ class AutoproxySettings(Model):
 
 class ProxyTag(Model):
     """Represents a single PluralKit proxy tag.
+
+    Hint:
+        A ProxyTag object can be called to see if it would match a message: ::
+
+            >>> pt = ProxyTag("{", "}")
+            >>> pt("This is an example.")
+            False
+            >>> pt("{This is another example.}")
+            True
 
     Args:
         prefix: Prefix that will enclose proxied messages.
@@ -555,12 +570,12 @@ class ProxyTag(Model):
     def __repr__(self):
         prefix = "" if not self.prefix else f"prefix={repr(self.prefix)}"
         suffix = "" if not self.suffix else f"suffix={repr(self.suffix)}"
-        attrs = ",".join(a for a in (prefix, suffix) if a)
+        attrs = ", ".join(a for a in (prefix, suffix) if a)
         return (
             f"{self.__class__.__name__}({attrs})"
         )
 
-    def match(self, message: str) -> bool:
+    def __call__(self, message: str) -> bool:
         """Determine if a given message would be proxied under this proxy tag.
         
         Args:
@@ -580,6 +595,17 @@ class ProxyTag(Model):
 
 class ProxyTags(Model):
     """Represents a set of PluralKit proxy tags.
+
+    Hint:
+        A ProxyTags object can be called to see if it would match a message: ::
+
+            >>> pt_1 = ProxyTag("{", "}")
+            >>> pt_2 = ProxyTag("A:")
+            >>> pts = ProxyTags([pt_1, pt_2])
+            >>> pts("{This is an example.}")
+            True
+            >>> pts("A: This is another example.")
+            True
 
     Hint:
         ProxyTags objects can be iterated or indexed to yield its underlying `ProxyTag` objects.    
@@ -610,7 +636,7 @@ class ProxyTags(Model):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def match(self, message: str) -> bool:
+    def __call__(self, message: str) -> bool:
         """Determine if a given message would be proxied under this set of proxy tags.
         
         Args:
@@ -629,31 +655,29 @@ class Member(Model):
     """Represents a PluralKit system member.
 
     Attributes:
-        id (str): The member's five-letter lowercase ID.
-        name (str): The member's name.
-        created (Timestamp): The member's creation date.
-        name_privacy (Privacy): The member's name privacy.
-        display_name (Optional[str]): The member's display name.
-        description (Optional[str]): The member's description.
-        description_privacy (Privacy): The member's description privacy.
-        color (Optional[Color]): The member's color.
-        birthday (Optional[Birthday]): The member's birthdate.
-        birthday_privacy (Privacy): The member's birthday privacy.
-        pronouns (Optional[str]): The member's pronouns.
-        pronoun_privacy (Privacy): The member's pronouns privacy.
-        avatar_url (Optional[str]): The member's avatar URL.
-        avatar_privacy (Privacy): The member's avatar privacy.
-        keep_proxy (bool): Whether the member's proxy tags remain in the proxied message (``True``)
-            or not (``False``).
-        metadata_privacy (Privacy): The member's metadata (eg. creation timestamp, message count,
-            etc.) privacy.
-        proxy_tags (ProxyTags): The member's proxy tags.
-        visibility (Privacy): The visibility privacy setting of the member.
-        system_id (SystemId): The ID of the system this member belongs to.
-
-    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+        id: The member reference ID.
+        system: The ID of the system this member belongs to.
+        name: The member's name.
+        created: The member's creation timestamp.
+        display_name: The member's display name.
+        description: The member's description.
+        color: The member's color.
+        birthday: The member's birthday.
+        pronouns: The member's pronouns.
+        avatar_url: The member's avatar url.
+        banner: The member's banner url.
+        proxy_tags: The member's proxy tags.
+        keep_proxy (bool): Whether the member's proxy tags remain in the proxied message or not.
+        name_privacy: Whether the member name is visible to others or only the display name.
+        description_privacy: Whether this member's description is visible to others.
+        birthday_privacy: Whether the member's birthday is visible to others.
+        pronoun_privacy: Whether the member's pronouns are visible to others.
+        avatar_privacy: Whether the member's avatar is visible to others.
+        metadata_privacy: Whether the member's metadata (i.e. creation timestamp, message count) is
+            visible to others.
+        visibility: Whether this member is visible to others (i.e. in member lists).
     """
-    id: Optional[str]
+    id: MemberId
     name: str
     created: Timestamp
     name_privacy: Privacy
@@ -671,7 +695,7 @@ class Member(Model):
     metadata_privacy: Privacy
     proxy_tags: Optional[ProxyTags]
     visibility: Privacy
-    system_id: SystemId
+    system: SystemId
     banner: Optional[str]
 
     def __str__(self):
@@ -695,24 +719,22 @@ class System(Model):
     """Represents a PluralKit system.
 
     Attributes:
-        id (`SystemId`): The system's five-character lowercase ID.
-        name (Optional[str]): The name of the system.
-        description (Optional[str]): The description of the system.
-        tag (Optional[str]): The system's tag appended to display names.
-        pronouns (Optional[str]): The system's pronouns.
-        avatar_url (Optional[str]): The system's avatar URL.
-        banner (Optional[str]): The (publically accessible) URL for the system's banner.
-        tz (Timezone): The system's tzdb timezone.
-        created (Timestamp): The system's timestamp at creation.
-        description_privacy (Privacy): The system's description privacy.
-        pronoun_privacy (Privacy): The system's pronouns privacy.
-        member_list_privacy (Privacy): The system's member list privacy.
-        group_list_privacy (Privacy): The system's group list privacy.
-        front_privacy (Privacy): The system's fronting privacy.
-        front_history_privacy (Privacy): The system's fronting history privacy.
-        color (`Color`): The system's color.
-
-    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+        id: The system reference ID.
+        name: The system's name.
+        description: The system's description.
+        created: The system's creation timestamp.
+        tag: The system's tag appended to display names.
+        pronouns: The system's pronouns.
+        avatar_url: The system's avatar url.
+        banner: The system's banner url.
+        tz: The system's tzdb timezone.
+        color: The system's color.
+        description_privacy: Whether the system's description is visible to others.
+        pronoun_privacy: Whether the system's pronouns are visible to others.
+        member_list_privacy: Whether the system's member list is visible to others.
+        group_list_privacy: Whether the system's group list is visible to others.
+        front_privacy: Whether the system's current fronter information is visible to others.
+        front_history_privacy: Whether the system's front history is visible to others.
     """
     id: SystemId
     created: Timestamp
@@ -749,20 +771,28 @@ class System(Model):
             self.__dict__[key] = Privacy(value)
 
 class Group(Model):
-    """Represents a PluralKit system group
+    """Represents a PluralKit system group.
 
     Attributes:
-        id (`GroupId`): PluralKit group ID.
-        name (str): Name of the group.
-        display_name (Optional[str]): Group display name.
-        description (Optional[str]): Group description.
-        icon (Optional[str]): (Publically accessible) URL of group icon.
-        banner (Optional[str]): (Publically accessible) URL of group banner.
-        color (Optional[Color]): Group color.
-        created (Timestamp): The group's creation date.
-        system_id (SystemId): The ID of the group's system.
+        id: The group reference ID.
+        system: The ID of the system this group belongs to.
+        name: Group name.
+        display_name: Group display name.
+        description: Group description.
+        icon: Group icon url.
+        banner: Group banner url.
+        color: Group color.
+        created: The group's creation timestamp.
+        name_privacy: Whether the group name is visible to others or only the display name.
+        description_privacy: Whether the group description is visilbe to others.
+        icon_privacy: Whether the group icon is visible to others.
+        list_privacy: Whether the group member list is visible to others.
+        metadata_privacy: Whether the groups's metadata (i.e. created timestamp) is visible to
+            others.
+        visibility: Whether this group is visible to others (i.e. in group lists).
     """
     id: Optional[GroupId]
+    system: SystemId
     name: str
     display_name: Optional[str]
     description: Optional[str]
@@ -776,7 +806,6 @@ class Group(Model):
     metadata_privacy: Privacy
     visibility: Privacy
     created: Timestamp
-    system_id: SystemId
 
     def __str__(self):
         return f"{self.id!s}"
@@ -800,11 +829,9 @@ class Switch(Model):
         the client method used.
 
     Attributes:
-        id (SwitchId): Switch's unique universal identifier (uuid).
-        timestamp (Timestamp): Timestamp of the switch.
-        members (Union[Sequence[Member],Sequence[MemberId]]): Members involved.
-
-    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+        id: Switch's unique universal identifier (uuid).
+        timestamp: Timestamp of the switch.
+        members: Members involved.
     """
     id: SwitchId
     timestamp: Timestamp
@@ -830,16 +857,13 @@ class Message(Model):
     """Represents a proxied message.
 
     Attributes:
-        timestamp (Timestamp): Timestamp of the message.
-        id (int): The ID of the Discord message sent by the webhook.
-        original (int): The ID of the (presumably deleted) original Discord message sent by the
-            account.
-        sender (int): The user ID of the account that sent the message.
-        channel (int): The ID of the channel the message was sent to.
-        system (Optional[System]): The system that proxied the message. None if system was deleted.
-        member (Optional[Member]): The member that proxied the message. None if member was deleted.
-
-    .. _`datetime`: https://docs.python.org/3/library/datetime.html#datetime-objects
+        timestamp: Timestamp of the message.
+        id: The ID of the Discord message sent by the webhook.
+        original: The ID of the (presumably deleted) original Discord message sent by the account.
+        sender: The user ID of the account that sent the message.
+        channel: The ID of the channel the message was sent to.
+        system: The system that proxied the message. ``None`` if system was deleted.
+        member: The member that proxied the message. ``None`` if member was deleted.
     """
     timestamp: Timestamp
     id: int
@@ -875,15 +899,13 @@ def _proxy_tags_processor(proxy_tags):
 # to make them ready for use (e.g. Python-friendly)
 # see Model.__init__ for how this is used
 
-# [name given by API] -> [new Python-friendly name]
-
+# [name given by API] -> [new pk.py (Python-friendly) name]
 _KEY_TRANSFORMATIONS = {
-    "system": "system_id",
 }
 
 # [name given by API] -> [constructor to use on this object]
 _VALUE_TRANSFORMATIONS = {
-    "system": SystemId,
+    "system": SystemId, # can also be full system object (for Message)
     "color": lambda c: None if c is None else Color(c),
     "proxy_tags": _proxy_tags_processor,
     "created": Timestamp,
@@ -895,7 +917,7 @@ _VALUE_TRANSFORMATIONS = {
     "timezone": Timezone,
 }
 
-# keys the user can update, along with any checks
+# patchable keys, along with their respective checks
 
 def _max_string_length(context, max_len, null_allowed=True):
     def check(value):
@@ -1043,7 +1065,7 @@ _PATCHABLE_SWITCH_KEYS = {
 _PATCHABLE_SYSTEM_SETTINGS_KEYS = {
     "timezone": _check_timezone,
     "pings_enabled": bool,
-    "latch_timeout": lambda n: int(n), # time in seconds
+    "latch_timeout": lambda n: None if n is None else int(n), # time in seconds
     "member_default_private": bool,
     "group_default_private": bool,
     "show_private_info": bool,

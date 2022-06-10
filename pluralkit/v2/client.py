@@ -18,7 +18,7 @@ from .models import (
     MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
     MemberGuildSettings, SystemGuildSettings, SystemSettings,
-    Timestamp,
+    Timestamp, Privacy,
     _PATCHABLE_SYSTEM_KEYS,
     _PATCHABLE_MEMBER_KEYS,
     _PATCHABLE_GROUP_KEYS,
@@ -36,18 +36,18 @@ class Client:
     """Represents a client that interacts with the PluralKit API.
 
     Args:
-        token
+        token: The PluralKit `authorization token`_, from the ``pk;token`` command.
 
     Keyword args:
-        async_mode
-        user_agent
+        async_mode: Whether the client runs asynchronously (``True``, default) or not (``False``).
+        user_agent: The User-Agent header to use with the API.
 
     Attributes:
-        token
-        async_mode
-        headers
-        content_headers
-        id
+        token: The client's PluralKit authorization token.
+        async_mode: Whether the client runs asynchronously (``True``) or not (``False``).
+        headers: The headers the client uses to communicate with the API.
+
+    .. _`authorization token`: https://pluralkit.me/api/#authentication
     """
     def __init__(self, token: Optional[str]=None, *,
         async_mode: bool=True,
@@ -55,8 +55,8 @@ class Client:
     ):
         # core factors
         self.async_mode = async_mode
-        self.token = token
         self.id = None
+        self._token = token
 
         # initialize rate limit handling
         self._rate_limit_remaining = 0
@@ -65,20 +65,23 @@ class Client:
         # set up headers
         self.headers = {}
         if user_agent: self.headers["User-Agent"] = user_agent
-        if token:
-            self.headers["Authorization"] = token
-            #if async_mode:
-            #    loop = asyncio.get_event_loop()
-            #    system = loop.run_until_complete(self._get_system())
-            #else:
-            #    system = self.get_system() # type: ignore
-            #self.id = system.id
-        self.content_headers = self.headers.copy()
-        self.content_headers["Content-Type"] = "application/json"
+        if token: self.headers["Authorization"] = token
 
-    # ========================
-    #  Private helper methods
-    # ========================
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, new_token):
+        self._token = new_token
+        if new_token is None:
+            del self.headers["Authorization"]
+        else:
+            self.headers["Authorization"] = new_token
+
+    # ==========================
+    #  abstract request methods
+    # ==========================
 
     async def _respect_rate_limit(self):
         """Respects the rate limit by waiting if necessary."""
@@ -99,7 +102,6 @@ class Client:
         if "X-RateLimit-Reset" in headers:
             self._rate_limit_reset_time = datetime.datetime.fromtimestamp(int(headers["X-RateLimit-Reset"]))
 
-    # abstract API http requester
     async def _request_something(self,
         # required positional arguments
         kind: str,
@@ -115,7 +117,7 @@ class Client:
         switch: Optional[SwitchId]=None,
         message: Optional[int]=None,
         guild_id: Optional[int]=None,
-        # optional payload
+        # optional payloads
         payload: Optional[dict]=None,
         params: Optional[dict]=None, # for query strings
     ):
@@ -144,7 +146,7 @@ class Client:
 
         # make the request
         async with httpx.AsyncClient(headers=self.headers) as session:
-            request_func = getattr(session, kind.lower()) # nice
+            request_func = getattr(session, kind.lower())
             kwargs = {}
             if params is not None: kwargs["params"] = params
             if payload is not None: kwargs["json"] = payload
@@ -192,7 +194,15 @@ class Client:
     # 
 
     @_async_mode_handler
-    def get_system(self, system: Union[SystemId,int,None]=None):
+    def get_system(self, system: Union[SystemId,int,None]=None) -> System:
+        """Get a system by its reference ID.
+
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
+        """
+        if isinstance(system, System): system = system.id
         return self._request_something(
             "GET",
             "{SERVER}/systems/{system_ref}",
@@ -203,7 +213,12 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_member(self, member: Union[MemberId,str]):
+    def get_member(self, member: Union[MemberId,str]) -> Member:
+        """Get a member by its reference ID.
+
+        Args:
+            member: Member reference (`MemberId`).
+        """
         return self._request_something(
             "GET",
             "{SERVER}/members/{member_ref}",
@@ -214,7 +229,12 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_group(self, group: Union[GroupId,str]):
+    def get_group(self, group: Union[GroupId,str]) -> Group:
+        """Get a group by its reference ID.
+
+        Args:
+            group: Group reference (`GroupId`).
+        """
         return self._request_something(
             "GET",
             "{SERVER}/groups/{group_ref}",
@@ -225,7 +245,13 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_message(self, message: int):
+    def get_message(self, message: int) -> Message:
+        """Get information about a proxied message.
+
+        Args:
+            message: The Discord ID of a proxied message, or the Discord ID of the message that
+                sent the proxy.
+        """
         return self._request_something(
             "GET",
             "{SERVER}/messages/{message_ref}",
@@ -239,16 +265,19 @@ class Client:
     def get_switches(self, system: Union[SystemId,int,None]=None, *,
         before: Timestamp=None,
         limit: int=None,
-    ):
+    ) -> Sequence[Switch]:
         """Get list of system switches.
 
-        Returns at most 100 switches. To get more, specify using ``before`` parameter.
+        Returns at most 100 switches. To get more, specify the ``before`` parameter.
 
-        Arguments:
-            system: System ID to get switches from.
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
 
-        Keyword arguments:
-            before: Timestamp before which to get latest switches from. Default is None.
+        Keyword args:
+            before: Timestamp before which to get latest switches from. Default is ``None``
+                ("now").
             limit: Number of switches to return. Default (and maximum) is 100.
         """
         params = {}
@@ -269,6 +298,11 @@ class Client:
     def get_fronters(self, system: Union[SystemId,int,None]=None) \
     -> Sequence[Member]:
         """Get list of current fronters.
+
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
         """
         return self._request_something(
             "GET",
@@ -280,8 +314,12 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_switch(self, switch: Union[SwitchId,str], system: Union[SystemId,int,None]=None):
-        """
+    def get_switch(self, switch: Union[SwitchId,str], system: Union[SystemId,int,None]=None
+    ) -> Switch:
+        """Get switch information by its reference ID.
+
+        Args:
+            switch: Switch reference (`SwitchId`).
         """
         return self._request_something(
             "GET",
@@ -295,7 +333,12 @@ class Client:
 
     @_async_mode_handler
     def get_members(self, system: Union[SystemId,int,None]=None) -> Sequence[Member]:
-        """
+        """Get the list of a system's members.
+
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
         """
         return self._request_something(
             "GET",
@@ -308,7 +351,10 @@ class Client:
 
     @_async_mode_handler
     def get_member_groups(self, member: Union[Member,str]) -> Sequence[Group]:
-        """
+        """Get the list of groups a member is a part of.
+
+        Args:
+            member: Member reference (`MemberId`).
         """
         return self._request_something(
             "GET",
@@ -320,8 +366,13 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_system_groups(self, system: Union[SystemId,int,None]=None) -> Sequence[Group]:
-        """
+    def get_groups(self, system: Union[SystemId,int,None]=None) -> Sequence[Group]:
+        """Get the list of a system's groups.
+
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
         """
         return self._request_something(
             "GET",
@@ -334,7 +385,10 @@ class Client:
 
     @_async_mode_handler
     def get_group_members(self, group: Union[GroupId,str]) -> Sequence[Member]:
-        """
+        """Get the list of members of a group.
+
+        Args:
+            group: Group reference (`GroupId`).
         """
         return self._request_something(
             "GET",
@@ -347,7 +401,12 @@ class Client:
 
     @_async_mode_handler
     def get_system_settings(self, system: Union[SystemId,str,int,None]=None) -> SystemSettings:
-        """
+        """Get a system's settings (e.g. defaults, timezone, limits).
+
+        Args:
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
         """
         return self._request_something(
             "GET",
@@ -359,24 +418,35 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_system_guild_settings(self, guild_id: int) -> SystemGuildSettings:
-        """Get the system guild settings of the client's system.
+    def get_system_guild_settings(self, guild_id: int, system: Union[SystemId,int,None]) \
+    -> SystemGuildSettings:
+        """Get the guild settings of a system.
 
-        Note:
-            This requires your authorization token.
+        Args:
+            guild_id: Discord guild ID.
+            system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
+                linked to the system. Default is ``None``, for the system corresponding to the
+                client's authoirzation token.
         """
+        error_lookups = GENERIC_ERROR_CODE_LOOKUP | {403: NotOwnSystem}
         return self._request_something(
             "GET",
-            "{SERVER}/systems/@me/guilds/{guild_id}",
+            "{SERVER}/systems/{system_ref}/guilds/{guild_id}",
             SystemGuildSettings,
             200,
-            GUILD_ERROR_CODE_LOOKUP,
+            error_lookups,
             guild_id=guild_id,
+            system=system,
         )
 
     @_async_mode_handler
-    def get_member_guild_settings(self, member: Union[MemberId,str], guild_id: int) -> MemberGuildSettings:
-        """Get the member guild settings of a member.
+    def get_member_guild_settings(self, guild_id: int, member: Union[MemberId,str]) \
+    -> MemberGuildSettings:
+        """Get the guild settings of a member.
+
+        Args:
+            guild_id: Discord guild ID.
+            member: Member reference (`MemberId`).
         """
         error_lookups = GENERIC_ERROR_CODE_LOOKUP | {403: NotOwnMember}
         return self._request_something(
@@ -395,7 +465,10 @@ class Client:
 
     @_async_mode_handler
     def delete_member(self, member: Union[MemberId,str]) -> None:
-        """
+        """Remove a member from your system.
+
+        Args:
+            member: Member reference (`MemberId`).
         """
         return self._request_something(
             "DELETE",
@@ -408,7 +481,10 @@ class Client:
 
     @_async_mode_handler
     def delete_group(self, group: Union[GroupId,Group]) -> None:
-        """
+        """Remove a group from your system.
+
+        Args:
+            group: Group reference (`GroupId`).
         """
         if isinstance(group, Group): group = group.id
         return self._request_something(
@@ -422,7 +498,10 @@ class Client:
 
     @_async_mode_handler
     def delete_switch(self, switch: Union[SwitchId,Switch]) -> None:
-        """
+        """Remove a logged switch from your system.
+
+        Args:
+            switch: Switch reference (`SwitchId`).
         """
         if isinstance(switch, Switch): switch = switch.id
         return self._request_something(
@@ -466,12 +545,12 @@ class Client:
         return arg_list
 
     @_async_mode_handler
-    def add_member_to_groups(self, member: Union[MemberId,str], groups) -> None:
+    def add_member_groups(self, member: Union[MemberId,str], groups) -> None:
         """Add a member to each group in a given list of groups.
 
-        Not to be confused with `Client.add_members_to_group`.
+        Not to be confused with `Client.add_group_members`.
 
-        Arguments:
+        Args:
             member: The member to add to the groups.
             groups (Sequence[Union[GroupId,Group]]): The groups to add the member to.
         """
@@ -487,16 +566,16 @@ class Client:
         )
 
     @_async_mode_handler
-    def remove_member_from_groups(self, member: Union[MemberId,str], groups) -> None:
+    def remove_member_groups(self, member: Union[MemberId,str], groups) -> None:
         """Remove a member from each group in a given list of groups.
 
-        Not to be confused with `Client.remove_members_from_group`.
+        Not to be confused with `Client.remove_group_members`.
 
         Tip:
             If you want to remove *all* groups from a member, consider using
             `Client.set_member_groups` with no groups.
 
-        Arguments:
+        Args:
             member: The member to remove from the groups.
             groups (Sequence[Union[GroupId,Group]]): The groups to remove the member from.
         """
@@ -519,7 +598,7 @@ class Client:
 
         An empty list is accepted, effectively removing the member from any & all groups.
 
-        Arguments:
+        Args:
             member: The member for which to set the groups.
             groups (Sequence[Union[GroupId,Group]]): The groups to assign to the member.
         """
@@ -535,12 +614,12 @@ class Client:
         )
 
     @_async_mode_handler
-    def add_members_to_group(self, group: Union[GroupId,Group], members) -> None:
+    def add_group_members(self, group: Union[GroupId,Group], members) -> None:
         """Add members to a group.
 
-        Not to be confused with `Client.add_member_to_groups`.
+        Not to be confused with `Client.add_member_groups`.
 
-        Arguments:
+        Args:
             group: The group to add the members to.
             members (Sequence[Union[Member,MemberId]]): The members to add to the group.
         """
@@ -556,16 +635,16 @@ class Client:
         )
 
     @_async_mode_handler
-    def remove_members_from_group(self, group: Union[GroupId,Group], members) -> None:
+    def remove_group_members(self, group: Union[GroupId,Group], members) -> None:
         """Remove members from a group.
 
-        Not to be confused with `Client.remove_member_from_groups`.
+        Not to be confused with `Client.remove_member_groups`.
 
         Tip:
             If you want to remove *all* members from a group, consider using
             `Client.set_group_members` with no members.
 
-        Arguments:
+        Args:
             group: The group to remove the members from.
             members (Sequence[Union[Member,MemberId]]): The members to remove from the group.
         """
@@ -588,7 +667,7 @@ class Client:
 
         An empty list is accepted, effectively removing all members from a group.
 
-        Arguments:
+        Args:
             group: The group to remove the members from.
             members (Sequence[Union[Member,MemberId]]): The members to assign to the group.
         """
@@ -620,20 +699,28 @@ class Client:
     def update_system(self, **kwargs) -> System:
         """Update your system.
 
-        Keyword arguments:
-            name
-            description
-            tag
-            pronouns
-            avatar_url
-            banner
-            color
-            description_privacy
-            pronoun_privacy
-            member_list_privacy
-            group_list_privacy
-            front_privacy
-            front_history_privacy
+        Keyword args:
+            name (str): System name (100 character limit).
+            description (Optional[str]): System description (1,000 character limit). ``None`` to
+                clear.
+            tag (str): System tag (79 character limit).
+            pronouns (Optional[str]): System pronouns (100 character limit). ``None`` to clear.
+            avatar_url (Optional[str]): System avatar url (256 character limite). ``None`` to
+                clear.
+            banner (Optional[str]): System banner url (256 character limite). ``None`` to clear.
+            color (Color): System color.
+            description_privacy (Optional[Privacy]): System description privacy. ``None`` to reset
+                (to public).
+            pronoun_privacy (Optional[Privacy]): System pronoun privacy. ``None`` to reset (to
+                public).
+            member_list_privacy (Optional[Privacy]): System member list privacy. ``None`` to reset
+                (to public).
+            group_list_privacy (Optional[Privacy]): System group list privacy. ``None`` to reset
+                (to public).
+            front_privacy (Optional[Privacy]): System current fronter privacy. ``None`` to reset
+                (to public).
+            front_history_privacy (Optional[Privacy]): System front history privacy. ``None`` to
+                reset (to public).
         """
         self._check_update_keys("update_system()", kwargs, _PATCHABLE_SYSTEM_KEYS)
         payload = {}
@@ -658,13 +745,19 @@ class Client:
     def update_system_settings(self, **kwargs) -> SystemSettings:
         """Update your system settings.
 
-        Keyword arguments:
-            timezone
-            pings_enabled
-            latch_timeout
-            member_default_private
-            group_default_private
-            show_private_info
+        Keyword args:
+            timezone (Timezone): System timezone. ``None`` resets to UTC.
+            pings_enabled (bool): Whether other users are able to ping your system (with a 🔔
+                reaction).
+            latch_timeout (Optional[int]): For autoproxy latch mode, this sets the amount of time
+                elapsed since the last proxied message in the server that resets the latch.
+                ``None`` resets to default (6 hr).
+            member_default_private (bool): Whether member privacy is automatically set to private for new members.
+                Applies only to new members created by the bot and *not* created by the PluralKit API directly.
+            group_default_private (bool): Whether group privacy is automatically set to private for new groups. Applies
+                only to new groups created by the bot and *not* created by the PluralKit API directly.
+            show_private_info (bool): Whether the bot shows the system's own private information without a ``-private``
+                flag.
         """
         self._check_update_keys("update_system_settings()",
             kwargs, _PATCHABLE_SYSTEM_SETTINGS_KEYS)
@@ -683,15 +776,16 @@ class Client:
 
     @_async_mode_handler
     def update_system_guild_settings(self, guild_id: int, **kwargs) -> SystemGuildSettings:
-        """Update your system guild settings.
+        """Update your system's guild settings.
 
-        Arguments:
-            guild_id
+        Args:
+            guild_id: Discord guild ID.
 
-        Keyword arguments:
-            proxying_enabled
-            tag
-            tag_enabled
+        Keyword args:
+            proxying_enabled (bool): Whether the system can proxy messages in this guild.
+            tag (Optional[str]): System tag in this guild (79 character limit). Use ``None`` to
+                clear.
+            tag_enabled (bool): Whether the system tag is enabled for this guild.
         """
         self._check_update_keys("update_system_guild_settings()",
             kwargs, _PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS)
@@ -711,7 +805,41 @@ class Client:
 
     @_async_mode_handler
     def update_member(self, member: Union[MemberId,Member], **kwargs) -> Member:
-        """Update a system member
+        """Update a system member.
+
+        Args:
+            member: Member reference (`MemberId`).
+
+        Keyword args:
+            name (str): Member name (100 character limit).
+            display_name (Optional[str]): Member display name (100 character limit). ``None`` to
+                clear.
+            color (Color): Member color.
+            birthday (Optional[Birthday]): Member birthday. ``None`` to clear.
+            pronouns (Optional[str]): Member pronouns (100 character limit). ``None`` to clear.
+            avatar_url (Optional[str]): Member avatar url (256 character limit). ``None`` to clear.
+            banner (Optional[str]): Member banner url (256 character limit). ``None`` to clear.
+            description (Optional[str]): Member description (1,000 character limit). ``None`` to
+                clear.
+            proxy_tags (Union[ProxyTag,ProxyTags,Sequence[ProxyTag]]): Member proxy tags. Use an
+                empty list to remove the member's set of proxy tags.
+            keep_proxy (bool): Whether to keep the proxy prefix and/or suffix for this member's
+                proxied messages.
+            visibility (Optional[Privacy]): Whether this member is visible to others (i.e. in
+                member lists). ``None`` to reset to default (public).
+            name_privacy (Optional[Privacy]): Whether the member name is visible to others or only
+                the display name. ``None`` to reset to default (public).
+            description_privacy (Optional[Privacy]): Whether the member description is visible to
+                others. ``None`` to reset to default (public).
+            birthday_privacy (Optional[Privacy]): Whether the member birthday is visible to others.
+                ``None`` to reset to default (public).
+            pronoun_privacy (Optional[Privacy]): Whether the member pronouns are visible to others.
+                ``None`` to reset to default (public).
+            avatar_privacy (Optional[Privacy]): Whether the member avatar is visible to others.
+                ``None`` to reset to default (public).
+            metadata_privacy (Optional[Privacy]): Whether the member's metadata (i.e. created
+                timestamp, message count) is visible to others. ``None`` to reset to default
+                (public).
         """
         if isinstance(member, Member): member = member.id
         self._check_update_keys("update_member()", kwargs, _PATCHABLE_MEMBER_KEYS)
@@ -737,16 +865,16 @@ class Client:
     @_async_mode_handler
     def update_member_guild_settings(self,
         member: Union[Member,MemberId], guild_id: int, **kwargs) -> MemberGuildSettings:
-        """Update your member guild settings.
+        """Update a member's guild settings.
 
-        Arguments:
-            member
-            guild_id
+        Args:
+            guild_id: Discord guild ID.
+            member: Member reference (`MemberId`).
 
-        Keyword arguments:
-            proxying_enabled
-            tag
-            tag_enabled
+        Keyword args:
+            display_name (Optional[str]): Member display name (100 character limit). ``None`` to
+                clear.
+            avatar_url (Optional[str]): Member avatar url (256 character limit). ``None`` to clear.
         """
         self._check_update_keys("update_member_guild_settings()",
             kwargs, _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS)
@@ -769,7 +897,32 @@ class Client:
 
     @_async_mode_handler
     def update_group(self, group: Union[GroupId,Group], **kwargs) -> Group:
-        """
+        """Update a group's settings.
+
+        Args:
+            group: Group reference (`GroupId`).
+
+        Keyword args:
+            name (str): Group name (100 character limit).
+            display_name (Optional[str]): Group display name (100 character limit). ``None`` to
+                clear.
+            description (Optional[str]): Group description (1,000 character limit). ``None`` to
+                clear.
+            icon (Optional[str]): Group icon url (256 character limit). ``None`` to clear.
+            banner (Optional[str]): Group banner url (256 character limit). ``None`` to clear.
+            color (Color): Group color.
+            name_privacy (Optional[Privacy]): Whether the group name is visible to others or only
+                the display name. ``None`` to reset to default (public).
+            description_privacy (Optional[Privacy]): Whether the group description is visilbe to
+                others. ``None`` to reset to default (public).
+            icon_privacy (Optional[Privacy]): Whether the group icon is visible to others. ``None``
+                to reset to default (public).
+            list_privacy (Optional[Privacy]): Whether the group member list is visible to others.
+                ``None`` to reset to default (public).
+            metadata_privacy (Optional[Privacy]): Whether the groups's metadata (i.e. created
+                timestamp) is visible to others. ``None`` to reset to default (public).
+            visibility (Optional[Privacy]): Whether this group is visible to others (i.e. in group
+                lists). ``None`` to reset to default (public).
         """
         self._check_update_keys("update_group()", kwargs, _PATCHABLE_GROUP_KEYS)
         payload = {}
@@ -797,10 +950,10 @@ class Client:
     def update_switch(self, switch: Union[SwitchId,Switch], **kwargs) -> Switch:
         """Update a logged switch.
 
-        Arguments:
-            switch
+        Args:
+            switch: Switch reference (`SwitchId`).
 
-        Keyword arguments:
+        Keyword args:
             timestamp: When the switch happened.
             members (Sequence[Union[Member,MemberId]]): The list of member IDs.
         """
@@ -835,7 +988,7 @@ class Client:
             results = []
             for a in awaitables:
                 results.append(await a) # purposefully block
-
+                                        # to return only most recent Switch model
             return results[-1]
 
         return send_request(awaitables)
@@ -844,26 +997,34 @@ class Client:
     def new_member(self, name: str, **kwargs) -> Member:
         """Create a new member in your system.
 
-        Arguments:
+        Args:
             name: The name of the new member. 100 character limit.
 
         Keyword args:
-            display_name
-            color
-            birthday
-            pronouns
-            avatar_url
-            banner
-            description
-            proxy_tags
-            keep_proxy
-            visibility
-            name_privacy
-            description_privacy
-            birthday_privacy
-            pronoun_privacy
-            avatar_privacy
-            metadata_privacy
+            display_name (str): Member display name (100 character limit).
+            color (Color): Member color.
+            birthday (Birthday): Member birthday.
+            pronouns (str): Member pronouns (100 character limit).
+            avatar_url (str): Member avatar url (256 character limit).
+            banner (str): Member banner url (256 character limit).
+            description (str): Member description (1,000 character limit).
+            proxy_tags (Union[ProxyTag,ProxyTags,Sequence[ProxyTag]]): Member proxy tags.
+            keep_proxy (bool): Whether to keep the proxy prefix and/or suffix for this member's
+                proxied messages.
+            visibility (Privacy): Whether this member is visible to others (i.e. in member lists).
+                Default is public.
+            name_privacy (Privacy): Whether the member name is visible to others or only the display
+                name. Default is public.
+            description_privacy (Privacy): Whether the member description is visible to others.
+                Default is public.
+            birthday_privacy (Privacy): Whether the member birthday is visible to others. Default
+                is public.
+            pronoun_privacy (Privacy): Whether the member pronouns are visible to others. Default
+                is public.
+            avatar_privacy (Privacy): Whether the member avatar is visible to others. Default is
+                public.
+            metadata_privacy (Privacy): Whether the member's metadata (i.e. created timestamp,
+                message count) is visible to others. Default is public.
         """
         name = _PATCHABLE_MEMBER_KEYS["name"](name)
         self._check_update_keys("new_member()", kwargs, _PATCHABLE_MEMBER_KEYS,
@@ -890,21 +1051,26 @@ class Client:
     def new_group(self, name: str, **kwargs) -> Group:
         """Create a new group
 
-        Arguments:
+        Args:
             name: Name of the group. 100 character limit.
 
         Keyword args:
-            display_name
-            description
-            icon
-            banner
-            color
-            name_privacy
-            description_privacy
-            icon_privacy
-            list_privacy
-            metadata_privacy
-            visibility
+            display_name (str): Group display name (100 character limit).
+            description (str): Group description (1,000 character limit).
+            icon (str): Group icon url (256 character limit).
+            banner (str): Group banner url (256 character limit).
+            color (Color): Group color.
+            name_privacy (Privacy): Whether the group name is visible to others or only the display
+                name. Default is public.
+            description_privacy (Privacy): Whether the group description is visilbe to others.
+                Default is public.
+            icon_privacy (Privacy): Whether the group icon is visible to others. Default is public.
+            list_privacy (Privacy): Whether the group member list is visible to others. Default is
+                public.
+            metadata_privacy (Privacy): Whether the groups's metadata (i.e. created timestamp) is
+                visible to others. Default is public.
+            visibility (Privacy): Whether this group is visible to others (i.e. in group lists).
+                Default is public.
         """
         name = _PATCHABLE_GROUP_KEYS["name"](name)
         self._check_update_keys("new_group()", kwargs, _PATCHABLE_GROUP_KEYS,
@@ -929,13 +1095,13 @@ class Client:
 
     @_async_mode_handler
     def new_switch(self, members, timestamp=None) -> Switch:
-        """Log a new switch
+        """Log a new switch.
 
-        Arguments:
-            members: List of members in this switch.
+        Args:
+            members (Sequence[Union[MemberId,Member]]): List of members in this switch.
 
         Keyword args:
-            timestamp: Defaults to "now".
+            timestamp (Timestamp): Time of switch. ``None`` for "now" (default).
         """
         payload = {}
         payload["members"] = _PATCHABLE_SWITCH_KEYS["members"](members)

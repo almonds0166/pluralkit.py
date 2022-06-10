@@ -4,116 +4,61 @@ from http.client import responses as RESPONSE_CODES
 class PluralKitException(Exception):
     """Base exception class for pluralkit.py
     """
-    ...
 
 class HTTPError(PluralKitException):
-    """HTTP exception class for PluralKit errors
+    """General PluralKit exception class for unexpected HTTP codes (e.g. 500).
     """
 
 class GenericBadRequest(PluralKitException):
-    """
-    """
-
-class ModelParseError(PluralKitException):
-    """
+    """Thrown when the API server informs the client that the request was malformed (400).
     """
 
-class ValidationError(PluralKitException):
-    """
-    """
+# Exceptions related to "not found"-related errors
 
 class NotFound(PluralKitException):
-    """Exception class for "not found"-related errors
+    """Thrown when the resource cannot be found (404).
     """
 
 class MemberNotFound(NotFound):
-    """Thrown when the Member ID is apparently not in PluralKit's database.
+    """Thrown when the Member ID is apparently not in PluralKit's database (404).
     """
 
 class SystemNotFound(NotFound):
-    """Thrown when the System ID is apparently not in PluralKit's database.
+    """Thrown when the System ID is apparently not in PluralKit's database (404).
     """
 
 class SwitchNotFound(NotFound):
-    """Thrown when the Switch ID is apparently not in PluralKit's database.
-    """
-
-class SwitchNotFoundPublic(NotFound):
-    """
+    """Thrown when the Switch ID is apparently not in PluralKit's database (404).
     """
 
 class MessageNotFound(NotFound):
-    """Thrown when the message ID is apparently not in PluralKit's database.
+    """Thrown when the message ID is apparently not in PluralKit's database (404).
     """
 
 class GroupNotFound(NotFound):
-    """Thrown when the Group ID is apparently not in PluralKit's database.
+    """Thrown when the Group ID is apparently not in PluralKit's database (404).
     """
 
 class GuildNotFound(NotFound):
-    """Thrown when the member or system has no guild settings for a given guild.
+    """Thrown when the member or system has no guild settings for a given guild (404).
     """
 
 # Exceptions related to lack of authorization
 
 class Unauthorized(PluralKitException):
-    """Thrown when the authorization token passed to PluralKit's API is invalid or missing.
+    """Thrown when the authorization token passed to PluralKit's API is invalid or missing (403).
     """
 
 class NotOwnSystem(Unauthorized):
-    """
+    """Thrown when the client doesn't have access to a system's private info (403).
     """
 
 class NotOwnMember(Unauthorized):
+    """Thrown when the client doesn't have access to a member's private info (403).
     """
-    """
-    CONTEXT = "Member"
 
 class NotOwnGroup(Unauthorized):
-    """
-    """
-    CONTEXT = "Group"
-
-class UnauthorizedGroupList(Unauthorized):
-    """
-    """
-
-class UnauthorizedGroupMemberList(Unauthorized):
-    """
-    """
-
-class UnauthorizedMemberList(Unauthorized):
-    """
-    """
-
-class UnauthorizedFrontHistory(Unauthorized):
-    """
-    """
-
-class UnauthorizedCurrentFronters(Unauthorized):
-    """
-    """
-
-# Exceptions related to switch logging
-
-class SwitchError(PluralKitException):
-    """
-    """
-
-class DuplicateMembersInList(SwitchError):
-    """
-    """
-
-class SameSwitchTimestampError(SwitchError):
-    """
-    """
-
-class SameSwitchMembersError(SwitchError):
-    """
-    """
-
-class InvalidSwitchId(SwitchError):
-    """
+    """Thrown when the client doesn't have access to a group's private info (403).
     """
 
 GENERIC_ERROR_CODE_LOOKUP = {

@@ -29,6 +29,14 @@ There are two main ways to query version information about the library.
 
 .. _whats_new:
 
+v1.0.0 (June 10, 2022)
+----------------------
+
+- Total upgrade to PluralKit API v2! (finally!)
+- Revamped model organization and 33 client methods
+- Smarter rate limiting
+- Low-level bug fixes
+
 v0.1.2 (July 13, 2021)
 ----------------------
 
