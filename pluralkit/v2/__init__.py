@@ -1,14 +1,11 @@
 
 from .client import Client
 from .models import (
-    System, SystemSettings, SystemGuildSettings,
-    Member, MemberGuildSettings,
-    Group,
-    Switch,
+    SystemId,System, SystemSettings, SystemGuildSettings,
+    MemberId, Member, MemberGuildSettings,
+    GroupId, Group,
+    SwitchId, Switch,
     Message,
-    SystemId,
-    MemberId,
-    GroupId,
     Birthday,
     Color,
     ProxyTag, ProxyTags,

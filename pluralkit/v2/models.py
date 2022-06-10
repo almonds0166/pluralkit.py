@@ -88,17 +88,34 @@ class PluralKitId(Model):
     __slots__ = ["uuid", "id"]
 
     def _check_id(self, id):
-        assert len(id) == 5 and all(c in ALPHABET for c in id), \
-            f"{self.CONTEXT} ID should be a five-character lowercase string"
+        return len(id) == 5 and all(c in ALPHABET for c in id)
+
+    def _check_uuid(self, uuid):
+        pattern = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+        result = re.match(pattern, uuid)
+        return bool(result)
 
     def __init__(self, id=None, uuid=None):
         if uuid is None and id is None:
             raise ValueError(f"{self.CONTEXT} ID object must include at least one of: id, uuid")
 
-        if id is not None: self._check_id(id)
-
-        object.__setattr__(self, "id", id)
-        object.__setattr__(self, "uuid", uuid)
+        # accept any order/combination of inputs
+        object.__setattr__(self, "id", None)
+        object.__setattr__(self, "uuid", None)
+        if id is not None:
+            if self._check_id(id):
+                object.__setattr__(self, "id", id)
+            elif self._check_uuid(id):
+                object.__setattr__(self, "uuid", id)
+            else:
+                raise ValueError(f"Malformed id given: {id!r}")
+        if uuid is not None:
+            if self._check_uuid(uuid):
+                object.__setattr__(self, "uuid", uuid)
+            elif self._check_id(uuid):
+                object.__setattr__(self, "id", uuid)
+            else:
+                raise ValueError(f"Malformed uuid given: {uuid!r}")
 
     def __setattr__(self, name, value):
         msg = f"cannot assign to field {name!r}"

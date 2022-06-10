@@ -59,6 +59,7 @@ class Client:
         self._token = token
 
         # initialize rate limit handling
+        self._rate_limit = 2 # default is 2 requests per second
         self._rate_limit_remaining = 0
         self._rate_limit_reset_time = datetime.datetime.now()
 
@@ -88,19 +89,22 @@ class Client:
         if self._rate_limit_remaining == 0:
             now = datetime.datetime.now()
             if self._rate_limit_reset_time < now:
-                self._rate_limit_remaining = 2
-                self._rate_limit_reset_time = now + datetime.timedelta(seconds=1)
+                self._rate_limit_remaining = self._rate_limit
             else:
-                await asyncio.sleep(self._rate_limit_reset_time - now)
-                self._rate_limit_remaining = 2
-                self._rate_limit_reset_time = now + datetime.timedelta(seconds=1)
+                await asyncio.sleep((self._rate_limit_reset_time - now).total_seconds())
+                self._rate_limit_remaining = self._rate_limit
+            self._rate_limit_reset_time = now + datetime.timedelta(seconds=1) # until otherwise specified
  
     def _update_rate_limits(self, headers):
         """Updates the rate limits based on the returned headers."""
+        if "X-RateLimit-Limit" in headers:
+            self._rate_limit = int(headers["X-RateLimit-Limit"])
         if "X-RateLimit-Remaining" in headers:
             self._rate_limit_remaining = int(headers["X-RateLimit-Remaining"])
         if "X-RateLimit-Reset" in headers:
-            self._rate_limit_reset_time = datetime.datetime.fromtimestamp(int(headers["X-RateLimit-Reset"]))
+            timestamp = float(headers["X-RateLimit-Reset"]) / 1000.0
+            self._rate_limit_reset_time = datetime.datetime.fromtimestamp(timestamp)
+            #print("reset at:", self._rate_limit_reset_time - datetime.datetime.now())
 
     async def _request_something(self,
         # required positional arguments
@@ -144,6 +148,9 @@ class Client:
 
         url = url_template.format(**pieces)
 
+        # respect rate limit
+        await self._respect_rate_limit()
+
         # make the request
         async with httpx.AsyncClient(headers=self.headers) as session:
             request_func = getattr(session, kind.lower())
@@ -152,6 +159,11 @@ class Client:
             if payload is not None: kwargs["json"] = payload
             response = await request_func(url, **kwargs)
 
+            # update rate limit mechanics
+            headers = response.headers
+            self._update_rate_limits(headers)
+
+            # analyze returned info
             code = response.status_code
             returned = response.json() if response.text else ""
             if code != expected_code:
