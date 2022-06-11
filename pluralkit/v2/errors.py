@@ -61,42 +61,45 @@ class NotOwnGroup(Unauthorized):
     """Thrown when the client doesn't have access to a group's private info (403).
     """
 
+# Python <= 3.8 RTD fix
+def merge(d1, d2): return {**d1, **d2}
+
 GENERIC_ERROR_CODE_LOOKUP = {
     400: GenericBadRequest,
     403: Unauthorized,
     404: NotFound,
 }
 
-SYSTEM_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+SYSTEM_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     403: NotOwnSystem,
     404: SystemNotFound,
-}
+})
 
-MEMBER_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+MEMBER_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     403: NotOwnMember,
     404: MemberNotFound,
-}
+})
 
-GROUP_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+GROUP_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     403: NotOwnGroup,
     404: GroupNotFound,
-}
+})
 
-MESSAGE_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+MESSAGE_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     404: MessageNotFound,
-}
+})
 
-SWITCH_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+SWITCH_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     403: NotOwnSystem,
     404: SwitchNotFound,
-}
+})
 
-GUILD_ERROR_CODE_LOOKUP = GENERIC_ERROR_CODE_LOOKUP | {
+GUILD_ERROR_CODE_LOOKUP = merge(GENERIC_ERROR_CODE_LOOKUP, {
     401: Unauthorized,
     404: GuildNotFound,
-}
+})
