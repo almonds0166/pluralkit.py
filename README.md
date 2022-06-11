@@ -6,8 +6,6 @@
 
 Python wrapper for [PluralKit](https://pluralkit.me/)'s API.
 
-Currently supports PluralKit's v1 API.
-
 ## Installing
 
 Python 3.6 or higher is required.
