@@ -51,6 +51,7 @@ setup(
          "check-manifest", # creating MANIFEST.in
          "twine", # for uploading to PyPI
          "wheel>=0.36.2", # for building wheels
+         "jinja2<3.1.0", # RDT bug #9037 (still not fixed)
       ]
    },
    python_requires=">=3.6.0",
