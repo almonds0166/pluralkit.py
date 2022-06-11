@@ -1,4 +1,10 @@
 
+check-manifest==0.48
+colour==0.1.5
+httpx==0.23.0
+pytest==7.1.2
+pytz==2022.1
+mypy==0.961
 Sphinx==5.0.1
 sphinx-autodoc-typehints==1.18.3
 sphinx-book-theme==0.0.39
