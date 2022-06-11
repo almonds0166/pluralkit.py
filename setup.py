@@ -41,17 +41,16 @@ setup(
    ],
    extras_require = {
       "dev": [
-         "Sphinx==3.5.4", # documentation!
-         "sphinx-autodoc-typehints==1.12.0", # better sphinx parsing
-         "sphinx-book-theme==0.1.0", # Book theme
-         "sphinxcontrib-trio==1.1.2", # better async handling
-         "mypy==0.910", # type checking
+         "Sphinx==5.0.1", # documentation!
+         "sphinx-autodoc-typehints", # better sphinx parsing
+         "sphinx-book-theme", # Book theme
+         "sphinxcontrib-trio", # better async handling
+         "mypy", # type checking
          "types-pytz==2021.1.0", # type checking with pytz
-         "pytest==6.2.4", # testing module
-         "check-manifest==0.46", # creating MANIFEST.in
-         "twine==3.4.1", # for uploading to PyPI
+         "pytest", # testing module
+         "check-manifest", # creating MANIFEST.in
+         "twine", # for uploading to PyPI
          "wheel>=0.36.2", # for building wheels
-         "jinja2<3.1.0", # dependency, RDT issue 9037
       ]
    },
    python_requires=">=3.6.0",

@@ -139,8 +139,6 @@ Privacy
 Exceptions
 ----------
 
-.. currentmodule:: pluralkit.v2.errors
-
 PluralKitException
 ~~~~~~~~~~~~~~~~~~
 

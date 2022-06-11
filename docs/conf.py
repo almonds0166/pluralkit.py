@@ -63,6 +63,9 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 #html_theme = "alabaster"
 #html_theme = "basicstrap" # https://pythonhosted.org/sphinxjp.themes.basicstrap/
 html_theme = "sphinx_book_theme" # https://sphinx-themes.org/sample-sites/sphinx-book-theme/
+#html_theme = "press"
+#html_theme = "sphinxawesome_theme"
+
 
 today = datetime.utcnow().strftime(
    "<time datetime=\"%Y-%m-%dT%H:%MZ\">" \
