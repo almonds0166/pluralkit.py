@@ -70,9 +70,17 @@ Below is an async example script that prints one's system members and system des
 
 .. note::
 
-   By default, the client is meant for asynchronous use; for example, to be paired with `discord.py`_.
+   By default, the client is meant for asynchronous use (for example, to be paired with `discord.py`_ or `aiosqlite`_).
 
-Use the ``async_mode=False`` argument for blocking execution:
+   Notice how all client methods that return a sequence (such as `Client.get_members`, `Client.get_switches`, `Client.get_member_groups`) are async generators and should use ``async for ...`` instead of ``await ...``.
+
+   In some cases, you may find it preferable to collapse the async generator into a proper list. In this case, a list comprehension such as this one might come in handy: ::
+
+      >>> fronters = [m async for m in pk.get_fronters()]
+      >>> len(fronters)
+      2
+
+For blocking execution, use the ``async_mode=False`` argument:
 
 .. code-block:: python
 
@@ -110,6 +118,7 @@ See here for the documentation of the most common Client methods:
 - `Client.update_switch`
 
 .. _`discord.py`: https://discordpy.readthedocs.io/en/stable/
+.. _`aiosqlite`: https://aiosqlite.omnilib.dev/en/latest/
 .. _`PluralKit's API`: https://pluralkit.me/
 
 .. _token:

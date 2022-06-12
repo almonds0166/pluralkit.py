@@ -319,6 +319,20 @@ class Client:
 
         Returns at most 100 switches. To get more, specify the ``before`` parameter.
 
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``: ::
+
+                async for switch in client.get_switches(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                switches = [s async for s in client.get_switches(...)]
+                ...
+
         Args:
             system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
                 linked to the system. Default is ``None``, for the system corresponding to the
@@ -347,6 +361,20 @@ class Client:
     def get_fronters(self, system: Union[SystemId,int,None]=None) \
     -> Sequence[Member]:
         """Get list of current fronters.
+
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``: ::
+
+                async for member in client.get_fronters(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                fronters = [m async for m in client.get_fronters(...)]
+                ...
 
         Args:
             system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
@@ -384,6 +412,20 @@ class Client:
     def get_members(self, system: Union[SystemId,int,None]=None) -> Sequence[Member]:
         """Get the list of a system's members.
 
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``. For example: ::
+
+                async for member in client.get_members(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                members = [m async for m in client.get_members(...)]
+                ...
+
         Args:
             system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
                 linked to the system. Default is ``None``, for the system corresponding to the
@@ -402,6 +444,20 @@ class Client:
     def get_member_groups(self, member: Union[Member,str]) -> Sequence[Group]:
         """Get the list of groups a member is a part of.
 
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``. For example: ::
+
+                async for group in client.get_member_groups(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                groups = [g async for g in client.get_member_groups(...)]
+                ...
+
         Args:
             member: Member reference (`MemberId`).
         """
@@ -417,6 +473,20 @@ class Client:
     @_async_mode_handler
     def get_groups(self, system: Union[SystemId,int,None]=None) -> Sequence[Group]:
         """Get the list of a system's groups.
+
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``. For example: ::
+
+                async for group in client.get_groups(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                groups = [g async for g in client.get_groups(...)]
+                ...
 
         Args:
             system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
@@ -435,6 +505,20 @@ class Client:
     @_async_mode_handler
     def get_group_members(self, group: Union[GroupId,str]) -> Sequence[Member]:
         """Get the list of members of a group.
+
+        Hint:
+            This method returns an async generator when the `Client` is in asynchronous mode
+            (and with ``async_mode=False``, it returns a list), so use the ``async for`` syntax instead of
+            ``await``. For example: ::
+
+                async for member in client.get_group_members(...):
+                    ...
+
+            If you find a list preferable to an async generator, use a list comprehension such
+            as ::
+
+                members = [m async for m in client.get_group_members(...)]
+                ...
 
         Args:
             group: Group reference (`GroupId`).
