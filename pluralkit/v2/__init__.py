@@ -1,8 +1,9 @@
 
 from .client import Client
 from .models import (
-    SystemId,System, SystemSettings, SystemGuildSettings,
+    SystemId, System, SystemSettings, SystemGuildSettings,
     MemberId, Member, MemberGuildSettings,
+    AutoproxySettings,
     GroupId, Group,
     SwitchId, Switch,
     Message,
@@ -11,7 +12,7 @@ from .models import (
     ProxyTag, ProxyTags,
     Timestamp,
     Timezone,
-    Privacy,
+    Privacy, AutoproxyMode,
 )
 
 from .errors import (

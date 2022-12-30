@@ -30,11 +30,20 @@ For `virtual environments`_, use pip like usual: ::
 
 .. _`virtual environments`: https://docs.python.org/3/tutorial/venv.html
 
+Development
+~~~~~~~~~~~
+
 To install the unstable version and test the latest changes: ::
 
    git clone -b main https://github.com/almonds0166/pluralkit.py
    cd pluralkit.py
    pip install -U .
+
+Or if you'd like to experiment with your own changes and contribute to development: ::
+
+   git clone -b main https://github.com/almonds0166/pluralkit.py
+   cd pluralkit.py
+   pip install -e ."[dev]"
 
 If you'd like to contribute, `please join the Discord server`_!
 

@@ -29,6 +29,18 @@ There are two main ways to query version information about the library.
 
 .. _whats_new:
 
+v1.1.0 (December 30, 2022)
+--------------------------
+
+- Bug fixes
+- New attributes for own system:
+   - `Member.message_count`
+   - `Member.last_message_timestamp`
+- Interface with autoproxy settings:
+   - `Member` models now have an `~Member.autoproxy_enabled` attribute
+   - New `Client.get_autoproxy_settings` method
+   - New `Client.update_autoproxy_settings` method
+
 v1.0.0 (June 10, 2022)
 ----------------------
 

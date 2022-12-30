@@ -15,14 +15,17 @@ import httpx
 
 from .models import (
     Model,
+    AutoproxyMode,
     MemberId, SystemId, GroupId, SwitchId,
     Member, System, Group, Switch, Message,
-    MemberGuildSettings, SystemGuildSettings, SystemSettings,
+    MemberGuildSettings, SystemGuildSettings,
+    SystemSettings, AutoproxySettings,
     Timestamp, Privacy,
     _PATCHABLE_SYSTEM_KEYS,
     _PATCHABLE_MEMBER_KEYS,
     _PATCHABLE_GROUP_KEYS,
     _PATCHABLE_SWITCH_KEYS,
+    _PATCHABLE_AUTOPROXY_SETTINGS_KEYS,
     _PATCHABLE_SYSTEM_SETTINGS_KEYS,
     _PATCHABLE_SYSTEM_GUILD_SETTINGS_KEYS,
     _PATCHABLE_MEMBER_GUILD_SETTINGS_KEYS,
@@ -73,6 +76,8 @@ class Client:
     Keyword args:
         async_mode: Whether the client runs asynchronously (``True``, default) or not (``False``).
         user_agent: The User-Agent header to use with the API.
+        loop: The `asyncio` event loop to use (if ``async_mode=True``), default is the current
+            event loop.
 
     Attributes:
         token: The client's PluralKit authorization token.
@@ -84,9 +89,11 @@ class Client:
     def __init__(self, token: Optional[str]=None, *,
         async_mode: bool=True,
         user_agent: Optional[str]=None,
+        loop: asyncio.AbstractEventLoop=None,
     ):
         # core factors
         self.async_mode = async_mode
+        self.loop = loop
         self.id = None
         self._token = token
 
@@ -229,7 +236,7 @@ class Client:
                     is_generator = False
                 return aiter(awaitable) if is_generator else awaitable
             else:
-                loop = asyncio.get_event_loop()
+                loop = instance.loop if instance.loop is not None else asyncio.get_event_loop()
                 result = loop.run_until_complete(awaitable)
                 return result
         return wrapped
@@ -249,7 +256,7 @@ class Client:
         Args:
             system: System reference; a system's ID (`SystemId`) or the ID of a Discord account
                 linked to the system. Default is ``None``, for the system corresponding to the
-                client's authoirzation token.
+                client's authorization token.
         """
         if isinstance(system, System): system = system.id
         return self._request_something(
@@ -317,7 +324,11 @@ class Client:
     ) -> Sequence[Switch]:
         """Get list of system switches.
 
-        Returns at most 100 switches. To get more, specify the ``before`` parameter.
+        Returns at most 100 switches. To get additional, specify the ``before`` parameter.
+
+        Note:
+            Because this is a batch API call, the `Switch` objects returned by this method have
+            `MemberId` objects for `Switch.members` rather than full `Member` objects.
 
         Hint:
             This method returns an async generator when the `Client` is in asynchronous mode
@@ -551,7 +562,23 @@ class Client:
         )
 
     @_async_mode_handler
-    def get_system_guild_settings(self, guild_id: int, system: Union[SystemId,int,None]) \
+    def get_autoproxy_settings(self, guild_id: int) -> AutoproxySettings:
+        """Get the autoproxy settings of your system.
+
+        Args:
+            guild_id: Discord guild ID.
+        """
+        return self._request_something(
+            "GET",
+            "{SERVER}/systems/@me/autoproxy",
+            AutoproxySettings,
+            200,
+            GENERIC_ERROR_CODE_LOOKUP,
+            params={"guild_id": guild_id},
+        )
+
+    @_async_mode_handler
+    def get_system_guild_settings(self, guild_id: int, system: Union[SystemId,int,None]=None) \
     -> SystemGuildSettings:
         """Get the guild settings of a system.
 
@@ -908,6 +935,38 @@ class Client:
         )
 
     @_async_mode_handler
+    def update_autoproxy_settings(self, guild_id: int, autoproxy_mode: AutoproxyMode, **kwargs) -> AutoproxySettings:
+        """Update your system's autoproxy settings.
+
+        Args:
+            guild_id: Discord guild ID.
+            autoproxy_mode (AutoproxyMode): The autoproxy mode to use for this Discord server.
+
+        Keyword args:
+            autoproxy_member (Union[MemberId,Member,None]): The member to autoproxy, when autoproxy
+                mode is set to `AutoproxyMode.MEMBER`.
+        """
+        self._check_update_keys("update_autoproxy_settings()",
+            kwargs, _PATCHABLE_AUTOPROXY_SETTINGS_KEYS, require_at_least_one_arg=False)
+        autoproxy_mode = AutoproxyMode(autoproxy_mode)
+        payload = {"autoproxy_mode": autoproxy_mode.json()}
+        for key, value in kwargs.items():
+            json_value = _PATCHABLE_AUTOPROXY_SETTINGS_KEYS[key](value)
+            payload[key] = json_value
+        # API quirk?
+        if autoproxy_mode == AutoproxyMode.FRONT and "autoproxy_member" in kwargs:
+            kwargs["autoproxy_member"] = None
+        return self._request_something(
+            "PATCH",
+            "{SERVER}/systems/@me/autoproxy",
+            AutoproxySettings,
+            200,
+            GUILD_ERROR_CODE_LOOKUP,
+            payload=payload,
+            params={"guild_id": guild_id},
+        )
+
+    @_async_mode_handler
     def update_system_guild_settings(self, guild_id: int, **kwargs) -> SystemGuildSettings:
         """Update your system's guild settings.
 
@@ -997,7 +1056,7 @@ class Client:
 
     @_async_mode_handler
     def update_member_guild_settings(self,
-        member: Union[Member,MemberId], guild_id: int, **kwargs) -> MemberGuildSettings:
+        guild_id: int, member: Union[Member,MemberId], **kwargs) -> MemberGuildSettings:
         """Update a member's guild settings.
 
         Args:

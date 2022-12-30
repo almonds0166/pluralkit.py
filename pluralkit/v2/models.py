@@ -30,6 +30,8 @@ class Privacy(Enum):
     PRIVATE = "private"
     #UNKNOWN = None # legacy, effectively resets privacy to "public"
 
+    def json(self): return self.value
+
 class AutoproxyMode(Enum):
     """Represents the autproxy modes.
     """
@@ -37,6 +39,8 @@ class AutoproxyMode(Enum):
     FRONT = "front"
     LATCH = "latch"
     MEMBER = "member"
+
+    def json(self): return self.value
 
 # Base class for all models
 
@@ -48,11 +52,13 @@ class Model:
         """Return a JSON object representing this model.
         """
         model = {}
-        for k, v in self.__dict__.items:
+        for k, v in self.__dict__.items():
             if not k.startswith("_"):
                 if hasattr(v, "json"):
                     # recurse
                     model[k] = v.json()
+                elif v is not None:
+                    model[k] = v
 
         return model
 
@@ -72,7 +78,7 @@ class Model:
             # and convert to proper Models if necessary
             if key in _VALUE_TRANSFORMATIONS:
                 Constructor = _VALUE_TRANSFORMATIONS[key]
-                value = Constructor(value)
+                value = Constructor(value) if value is not None else None
             key = _KEY_TRANSFORMATIONS.get(key, key)
 
             self.__dict__[key] = value
@@ -689,27 +695,36 @@ class Member(Model):
         metadata_privacy: Whether the member's metadata (i.e. creation timestamp, message count) is
             visible to others.
         visibility: Whether this member is visible to others (i.e. in member lists).
+        autoproxy_enabled: Whether this member has autoproxy enabled. `None` if the member is not
+            from the client's system.
+        message_count: Member message count. `None` if the member's metadata privacy is set to
+            private and the member is not from the client's system.
+        last_message_timestamp: Timestamp of member's last message. `None` if the member's metadata
+            privacy is set to private and the member is not from the client's system.
     """
     id: MemberId
     name: str
     created: Timestamp
-    name_privacy: Privacy
+    name_privacy: Optional[Privacy]
+    description_privacy: Optional[Privacy]
+    birthday_privacy: Optional[Privacy]
+    pronoun_privacy: Optional[Privacy]
+    avatar_privacy: Optional[Privacy]
+    metadata_privacy: Optional[Privacy]
+    visibility: Optional[Privacy]
     display_name: Optional[str]
     description: Optional[str]
-    description_privacy: Privacy
     color: Optional[Color]
     birthday: Optional[Birthday]
-    birthday_privacy: Privacy
     pronouns: Optional[str]
-    pronoun_privacy: Privacy
     avatar_url: Optional[str]
-    avatar_privacy: Privacy
     keep_proxy: bool
-    metadata_privacy: Privacy
     proxy_tags: Optional[ProxyTags]
-    visibility: Privacy
     system: SystemId
     banner: Optional[str]
+    autoproxy_enabled: Optional[bool]
+    message_count: Optional[int]
+    last_message_timestamp: Optional[Timestamp]
 
     def __str__(self):
         return f"{self.id!s}"
@@ -724,9 +739,15 @@ class Member(Model):
         ignore_keys = ("uuid", "id", "privacy",)
         Model.__init__(self, json, ignore_keys)
         # fix up the remaining keys
-        self.id = MemberId(id=json["id"], uuid=json["uuid"])
-        for key, value in json["privacy"].items():
-            self.__dict__[key] = Privacy(value)
+        self.id = MemberId(id=json["id"], uuid=json["uuid"]) 
+        # incorporate privacy keys when given
+        if json.get("privacy") is not None:
+            for key, value in json["privacy"].items():
+                self.__dict__[key] = Privacy(value)
+        else:
+            for key, _ in self.__class__.__annotations__.items():
+                if "privacy" in key:
+                    self.__dict__[key] = None # unknown         
 
 class System(Model):
     """Represents a PluralKit system.
@@ -756,12 +777,12 @@ class System(Model):
     tag: Optional[str]
     avatar_url: Optional[str]
     tz: Timezone
-    description_privacy: Privacy
-    pronoun_privacy: Privacy
-    member_list_privacy: Privacy
-    group_list_privacy: Privacy
-    front_privacy: Privacy
-    front_history_privacy: Privacy
+    description_privacy: Optional[Privacy]
+    pronoun_privacy: Optional[Privacy]
+    member_list_privacy: Optional[Privacy]
+    group_list_privacy: Optional[Privacy]
+    front_privacy: Optional[Privacy]
+    front_history_privacy: Optional[Privacy]
     pronouns: Optional[str]
     banner: Optional[str]
     color: Optional[Color]
@@ -780,8 +801,14 @@ class System(Model):
         Model.__init__(self, json, ignore_keys)
         # fix up the remaining keys
         self.id = SystemId(id=json["id"], uuid=json["uuid"])
-        for key, value in json["privacy"].items():
-            self.__dict__[key] = Privacy(value)
+        # incorporate privacy keys when given
+        if json.get("privacy") is not None:
+            for key, value in json["privacy"].items():
+                self.__dict__[key] = Privacy(value)
+        else:
+            for key, _ in self.__class__.__annotations__.items():
+                if "privacy" in key:
+                    self.__dict__[key] = None # unknown
 
 class Group(Model):
     """Represents a PluralKit system group.
@@ -840,6 +867,10 @@ class Switch(Model):
     Note:
         ``members`` can either be a list of `Member` models or a list of `MemberId` objects,
         depending on the client method used.
+
+        In particular, switch models from `Client.get_switches` carry `MemberId` objects, whereas
+        switch models from  `~Client.get_switch`, `~Client.new_switch`, and `~Client.update_switch`
+        carry full `Member` objects.
 
     Attributes:
         id: Switch's unique universal identifier (uuid).
@@ -912,6 +943,7 @@ def _proxy_tags_processor(proxy_tags):
 
 # [name given by API] -> [new pk.py (Python-friendly) name]
 _KEY_TRANSFORMATIONS = {
+    # (So far, all key names in the API are Python-friendly)
 }
 
 # [name given by API] -> [constructor to use on this object]
@@ -921,6 +953,8 @@ _VALUE_TRANSFORMATIONS = {
     "proxy_tags": _proxy_tags_processor,
     "created": Timestamp,
     "timestamp": Timestamp,
+    "last_message_timestamp": Timestamp,
+    "message_count": int,
     "channel": int,
     "original": int,
     "sender": int,
@@ -928,7 +962,8 @@ _VALUE_TRANSFORMATIONS = {
     "timezone": Timezone,
 }
 
-# patchable keys, along with their respective checks
+# Patchable keys, along with their respective checks
+# These methods are for the client's patch (update) methods
 
 def _max_string_length(context, max_len, null_allowed=True):
     def check(value):
@@ -1015,6 +1050,28 @@ def _check_members(members):
         )
         raise ValueError(msg)
 
+def _check_optional_member(m):
+    """For `Client.update_autoproxy_settings`
+    """
+    if m is None: return None
+    if isinstance(m, MemberId): return str(m)
+    if isinstance(m, Member): return str(m.id)
+    # otherwise
+    try:
+        if isinstance(m, Member):
+            return str(m.id)
+        elif isinstance(m, MemberId):
+            return str(m)
+        else:
+            m = MemberId(m)
+            return str(m)
+    except (TypeError, ValueError):
+        msg = (
+            f"Could not cast {m!r} to a MemberId or Member. "
+            f"Please pass in a MemberId or Member object."
+        )
+        raise ValueError(msg)
+
 
 _PATCHABLE_SYSTEM_KEYS = {
     "name": _max_string_length("name", 100, null_allowed=False),
@@ -1071,6 +1128,10 @@ _PATCHABLE_GROUP_KEYS = {
 _PATCHABLE_SWITCH_KEYS = {
     "members": _check_members,
     "timestamp": _check_timestamp,
+}
+
+_PATCHABLE_AUTOPROXY_SETTINGS_KEYS = {
+    "autoproxy_member": _check_optional_member,
 }
 
 _PATCHABLE_SYSTEM_SETTINGS_KEYS = {

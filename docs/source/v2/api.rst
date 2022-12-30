@@ -25,6 +25,12 @@ SystemSettings
 .. autoclass:: SystemSettings
    :members:
 
+AutoproxySettings
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AutoproxySettings
+   :members:
+
 SystemGuildSettings
 ~~~~~~~~~~~~~~~~~~~
 
@@ -120,6 +126,27 @@ Timezone
 
 Enumerations
 ------------
+
+AutoproxyMode
+~~~~~~~~~~~~~
+
+.. autoclass:: AutoproxyMode
+
+   .. autoattribute:: AutoproxyMode.OFF
+
+      Represents disabled autoproxying.
+
+   .. autoattribute:: AutoproxyMode.FRONT
+
+      Represents front-mode autoproxying, when messages are proxied as the current first fronter of the system.
+
+   .. autoattribute:: AutoproxyMode.LATCH
+
+      Represents latch-mode autoproxying, when messages are proxied as the last proxied member.
+
+   .. autoattribute:: AutoproxyMode.MEMBER
+
+      Represents member-mode autoproxying, when messages are proxied as a specified member.
 
 Privacy
 ~~~~~~~
