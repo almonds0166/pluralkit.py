@@ -743,7 +743,7 @@ class Member(Model):
         # incorporate privacy keys when given
         if json.get("privacy") is not None:
             for key, value in json["privacy"].items():
-                self.__dict__[key] = Privacy(value)
+                self.__dict__[key] = Privacy(value) if value is not None else None
         else:
             for key, _ in self.__class__.__annotations__.items():
                 if "privacy" in key:
@@ -804,7 +804,7 @@ class System(Model):
         # incorporate privacy keys when given
         if json.get("privacy") is not None:
             for key, value in json["privacy"].items():
-                self.__dict__[key] = Privacy(value)
+                self.__dict__[key] = Privacy(value) if value is not None else None
         else:
             for key, _ in self.__class__.__annotations__.items():
                 if "privacy" in key:
