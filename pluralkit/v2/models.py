@@ -42,6 +42,20 @@ class AutoproxyMode(Enum):
 
     def json(self): return self.value
 
+def _to_json(value):
+    """Robust method to deep convert Model objects
+    """
+    if hasattr(value, "json"):
+        return value.json()
+    
+    if isinstance(value, (list, set, tuple)):
+        return [_to_json(v) for v in value]
+    
+    if isinstance(value, (dict,)):
+        return {k: _to_json(v) for k, v in value.items()}
+    
+    return value
+
 # Base class for all models
 
 class Model:
@@ -53,12 +67,9 @@ class Model:
         """
         model = {}
         for k, v in self.__dict__.items():
-            if not k.startswith("_"):
-                if hasattr(v, "json"):
-                    # recurse
-                    model[k] = v.json()
-                elif v is not None:
-                    model[k] = v
+            if k.startswith("_"): continue
+            if v is None: continue
+            model[k] = _to_json(v)
 
         return model
 
