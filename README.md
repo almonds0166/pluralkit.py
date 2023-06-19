@@ -75,10 +75,11 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
 
 <table>
    <tr>
-      <td align="center"><a href="https://github.com/Alyx-W"><img src="https://avatars.githubusercontent.com/u/58519807?v=4&s=100" width="100px;" alt=""/><br/><sub><b>Alyx</b></sub></a><br/>💻🤔🚇⚠️💬</td>
+      <td align="center"><a href="https://github.com/moon-dew/"><img src="https://avatars.githubusercontent.com/u/58519807?v=4&s=100" width="100px;" alt=""/><br/><sub><b>Alyx</b></sub></a><br/>💻🤔🚇⚠️💬</td>
       <td align="center"><a href="https://github.com/almond0166"><img src="https://avatars.githubusercontent.com/u/42977337?v=4&s=100" width="100px;" alt=""/><br/><sub><b>Kotocade</b></sub></a><br/>💻📖🤔🚧📆💬</td>
       <td align="center"><a href="https://github.com/powertashton"><img src="https://avatars.githubusercontent.com/u/48048360?v=4&s=100" width="100px;" alt=""/><br/><sub><b>Ashton Power</b></sub></a><br/>💻📓</td>
       <td align="center"><a href="https://github.com/systeminabox"><img src="https://avatars.githubusercontent.com/u/106895862?v=4&s=100" width="100px;" alt=""/><br/><sub><b>System in a Box</b></sub></a><br/>🐛</td>
+      <td align="center"><a href="https://github.com/Ringlings"><img src="https://avatars.githubusercontent.com/u/110815694?v=4&s=100" width="100px;" alt=""/><br/><sub><b>Gem</b></sub></a><br/>💻🐛</td>
    </tr>
 </table>
 

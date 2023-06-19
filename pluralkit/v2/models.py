@@ -694,7 +694,9 @@ class Member(Model):
         color: The member's color.
         birthday: The member's birthday.
         pronouns: The member's pronouns.
-        avatar_url: The member's avatar url.
+        avatar_url: The member's main avatar url that appears uncropped on the member card.
+        webhook_avatar_url: The member's avatar url used for proxied messages instead of the main
+            avatar.
         banner: The member's banner url.
         proxy_tags: The member's proxy tags.
         keep_proxy (bool): Whether the member's proxy tags remain in the proxied message or not.
