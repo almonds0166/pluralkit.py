@@ -729,6 +729,7 @@ class Member(Model):
     birthday: Optional[Birthday]
     pronouns: Optional[str]
     avatar_url: Optional[str]
+    webhook_avatar_url: Optional[str]
     keep_proxy: bool
     proxy_tags: Optional[ProxyTags]
     system: SystemId
