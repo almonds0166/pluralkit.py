@@ -240,6 +240,7 @@ Member has the following useful attributes:
 - `Member.pronouns`
 - `Member.pronoun_privacy`
 - `Member.avatar_url`
+- `Member.webhook_avatar_url`
 - `Member.avatar_privacy`
 - `Member.banner`
 - `Member.proxy_tags`
