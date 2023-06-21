@@ -1220,7 +1220,7 @@ class Client:
         """
         name = _PATCHABLE_MEMBER_KEYS["name"](name)
         self._check_update_keys("new_member()", kwargs, _PATCHABLE_MEMBER_KEYS,
-            require_at_least_one_arg)
+            require_at_least_one_arg=False)
         payload = {"name": name}
         privacies = {}
         for key, value in kwargs.items():
