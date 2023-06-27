@@ -579,7 +579,7 @@ class ProxyTag(Model):
         prefix: Optional[str]=None,
         suffix: Optional[str]=None,
         *,
-        proxy_tag: Dict[str,str],
+        proxy_tag: Optional[Dict[str,str]]=None,
     ):
 
         if proxy_tag is not None:
