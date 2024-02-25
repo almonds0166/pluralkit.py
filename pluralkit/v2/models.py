@@ -714,6 +714,7 @@ class Member(Model):
             private and the member is not from the client's system.
         last_message_timestamp: Timestamp of member's last message. `None` if the member's metadata
             privacy is set to private and the member is not from the client's system.
+        tts: Whether this member has enabled tts or not
     """
     id: MemberId
     name: str
@@ -739,6 +740,7 @@ class Member(Model):
     autoproxy_enabled: Optional[bool]
     message_count: Optional[int]
     last_message_timestamp: Optional[Timestamp]
+    tts: Optional[bool]
 
     def __str__(self):
         return f"{self.id!s}"
