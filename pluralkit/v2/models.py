@@ -102,10 +102,19 @@ class PluralKitId(Model):
     uuid: Optional[str]
     id: Optional[str]
 
+    _six_character_allowed = "abcefghjknoprstuvwxyz"
+    _six_character_pattern = re.compile(
+        f"^([{_six_character_allowed}]{{3}}-?[{_six_character_allowed}]{{3}})$",
+        re.IGNORECASE,
+    )
+
     __slots__ = ["uuid", "id"]
 
-    def _check_id(self, id):
-        return len(id) == 5 and all(c in ALPHABET for c in id)
+    def _check_id(self, id: str) -> bool:
+        # 5-character IDs
+        if len(id) == 5 and all(c in ALPHABET for c in id): return True
+        # 6-character IDs
+        return bool(self._six_character_pattern.match(id))
 
     def _check_uuid(self, uuid):
         pattern = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
@@ -121,6 +130,9 @@ class PluralKitId(Model):
         object.__setattr__(self, "uuid", None)
         if id is not None:
             if self._check_id(id):
+                if len(id) >= 6:
+                    id = id.lower()
+                    id = f"{id[:3]}-{id[-3:]}"
                 object.__setattr__(self, "id", id)
             elif self._check_uuid(id):
                 object.__setattr__(self, "uuid", id)
@@ -130,6 +142,9 @@ class PluralKitId(Model):
             if self._check_uuid(uuid):
                 object.__setattr__(self, "uuid", uuid)
             elif self._check_id(uuid):
+                if len(uuid) >= 6:
+                    uuid = uuid.lower()
+                    uuid = f"{uuid[:3]}-{uuid[-3:]}"
                 object.__setattr__(self, "id", uuid)
             else:
                 raise ValueError(f"Malformed uuid given: {uuid!r}")
@@ -146,7 +161,12 @@ class PluralKitId(Model):
         if self.uuid is not None: attrs += f", {self.uuid!r}"
         return f"{self.__class__.__name__}({attrs})"
 
-    json = __str__
+    def json(self) -> str:
+        return (
+            f"{self.uuid}"
+            if self.uuid is not None
+            else f"{self.id.replace('-', '')}"
+        )
 
 class MemberId(PluralKitId):
     """Member IDs.
