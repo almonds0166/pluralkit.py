@@ -103,7 +103,7 @@ class PluralKitId(Model):
     id: Optional[str]
 
     _six_character_pattern = re.compile(
-        "^([a-z]{{3}}-?[a-z]{{3}})$",
+        "^([a-z]{3}-?[a-z]{3})$",
         re.IGNORECASE,
     )
 
