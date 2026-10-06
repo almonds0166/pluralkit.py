@@ -719,11 +719,13 @@ class Member(Model):
         banner: The member's banner url.
         proxy_tags: The member's proxy tags.
         keep_proxy (bool): Whether the member's proxy tags remain in the proxied message or not.
+        aliases: The member's aliases
         name_privacy: Whether the member name is visible to others or only the display name.
         description_privacy: Whether this member's description is visible to others.
         birthday_privacy: Whether the member's birthday is visible to others.
         pronoun_privacy: Whether the member's pronouns are visible to others.
         avatar_privacy: Whether the member's avatar is visible to others.
+        alias_privacy: Whether the member's aliases are visible to others.
         metadata_privacy: Whether the member's metadata (i.e. creation timestamp, message count) is
             visible to others.
         visibility: Whether this member is visible to others (i.e. in member lists).
@@ -743,6 +745,7 @@ class Member(Model):
     birthday_privacy: Optional[Privacy]
     pronoun_privacy: Optional[Privacy]
     avatar_privacy: Optional[Privacy]
+    alias_privacy: Optional[Privacy]
     metadata_privacy: Optional[Privacy]
     visibility: Optional[Privacy]
     display_name: Optional[str]
@@ -754,6 +757,7 @@ class Member(Model):
     webhook_avatar_url: Optional[str]
     keep_proxy: bool
     proxy_tags: Optional[ProxyTags]
+    aliases: Optional[list[str]]
     system: SystemId
     banner: Optional[str]
     autoproxy_enabled: Optional[bool]
