@@ -760,6 +760,7 @@ class Member(Model):
     message_count: Optional[int]
     last_message_timestamp: Optional[Timestamp]
     tts: Optional[bool]
+    aliases: Optional[List[str]]
 
     def __str__(self):
         return f"{self.id!s}"
